@@ -2,14 +2,15 @@
 
 Si, Vercel va benissimo per questa app.
 
-L'app e' statica: `index.html`, `styles.css`, `app.js` e i file dentro `resources/` vengono serviti direttamente. Non serve un backend vero: quando modifichi i CSV o `regolamento.txt`, basta fare un nuovo deploy e la classifica si aggiorna.
+L'app e' statica: `index.html`, `styles.css`, `main.js` e i file dentro `resources/` vengono serviti direttamente. Non serve un backend vero: quando modifichi i CSV o `regolamento.txt`, basta fare un nuovo deploy e la classifica si aggiorna.
 
 ## Preparazione
 
 1. Verifica che nel progetto ci siano questi file:
    - `index.html`
    - `styles.css`
-   - `app.js`
+   - `main.js`
+   - `vercel.json`
    - `tecnocasa-logo.png`
    - `resources/teams.csv`
    - `resources/punteggi.csv`
@@ -40,6 +41,8 @@ http://127.0.0.1:4173
    - Output Directory: `.`
    - Install Command: vuoto
 5. Conferma con `Deploy`.
+
+Nota: il JavaScript frontend si chiama `main.js` per evitare che Vercel lo interpreti come entrypoint di una Serverless Function.
 
 ## Deploy con Vercel CLI
 

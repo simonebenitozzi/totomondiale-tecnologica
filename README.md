@@ -73,14 +73,17 @@ Vercel va bene per questo progetto perché l'app e' statica.
 
 Le istruzioni complete sono in [DEPLOY.md](DEPLOY.md).
 
+Nota per Vercel: il file JavaScript frontend si chiama `main.js` per evitare che venga interpretato come funzione serverless.
+
 ## Struttura
 
 ```text
 .
-├── app.js
+├── main.js
 ├── index.html
 ├── styles.css
 ├── server.js
+├── vercel.json
 ├── tecnocasa-logo.png
 ├── DEPLOY.md
 ├── README.md
