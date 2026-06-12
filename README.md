@@ -16,7 +16,7 @@ L'app e' pensata per mobile, legge direttamente i file dentro `resources/` e cal
 Serve Node.js.
 
 ```powershell
-node server.js
+node local-server.cjs
 ```
 
 Poi apri:
@@ -28,10 +28,10 @@ http://127.0.0.1:4173
 In alternativa:
 
 ```powershell
-npm.cmd start
+npm.cmd run dev
 ```
 
-Su alcuni PC Windows `npm start` puo' essere bloccato dalla policy di PowerShell; `npm.cmd start` evita il problema.
+Su alcuni PC Windows `npm run dev` puo' essere bloccato dalla policy di PowerShell; `npm.cmd run dev` evita il problema.
 
 ## File dati
 
@@ -82,7 +82,7 @@ Nota per Vercel: il file JavaScript frontend si chiama `main.js` per evitare che
 ├── main.js
 ├── index.html
 ├── styles.css
-├── server.js
+├── local-server.cjs
 ├── vercel.json
 ├── tecnocasa-logo.png
 ├── DEPLOY.md

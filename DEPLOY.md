@@ -21,7 +21,7 @@ L'app e' statica: `index.html`, `styles.css`, `main.js` e i file dentro `resourc
 2. Prova l'app in locale:
 
 ```powershell
-node server.js
+node local-server.cjs
 ```
 
 3. Apri:
@@ -42,7 +42,7 @@ http://127.0.0.1:4173
    - Install Command: vuoto
 5. Conferma con `Deploy`.
 
-Nota: il JavaScript frontend si chiama `main.js` per evitare che Vercel lo interpreti come entrypoint di una Serverless Function.
+Nota: il JavaScript frontend si chiama `main.js` e il server locale si chiama `local-server.cjs` per evitare che Vercel li interpreti come Serverless Function.
 
 ## Deploy con Vercel CLI
 
@@ -73,7 +73,7 @@ vercel --prod
 ## Aggiornare risultati e partecipanti
 
 1. Modifica i file in `resources/`.
-2. Controlla in locale con `node server.js`.
+2. Controlla in locale con `node local-server.cjs`.
 3. Fai commit e push se usi Git.
 4. Vercel pubblichera' automaticamente la nuova versione.
 
@@ -85,14 +85,14 @@ vercel --prod
 
 ## Nota su PowerShell
 
-Su alcuni PC Windows `npm start` puo' essere bloccato dalla execution policy. In quel caso usa:
+Su alcuni PC Windows `npm run dev` puo' essere bloccato dalla execution policy. In quel caso usa:
 
 ```powershell
-npm.cmd start
+npm.cmd run dev
 ```
 
 oppure direttamente:
 
 ```powershell
-node server.js
+node local-server.cjs
 ```
