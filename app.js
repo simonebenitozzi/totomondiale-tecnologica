@@ -1,0 +1,451 @@
+const PRIZES = [70, 40, 20];
+const ENTRY_FEE = 10;
+
+const paths = {
+  teams: "resources/teams.csv",
+  points: "resources/punteggi.csv",
+  participants: "resources/partecipanti.csv",
+  results: "resources/risultati.csv",
+  rules: "resources/regolamento.txt",
+};
+
+const els = {
+  totalPrize: document.querySelector("#totalPrize"),
+  leaderName: document.querySelector("#leaderName"),
+  leaderMeta: document.querySelector("#leaderMeta"),
+  leaderPoints: document.querySelector("#leaderPoints"),
+  updatedAt: document.querySelector("#updatedAt"),
+  rankingList: document.querySelector("#rankingList"),
+  teamsCount: document.querySelector("#teamsCount"),
+  teamsList: document.querySelector("#teamsList"),
+  teamSearch: document.querySelector("#teamSearch"),
+  rulesText: document.querySelector("#rulesText"),
+  pointsTable: document.querySelector("#pointsTable"),
+  dialog: document.querySelector("#participantDialog"),
+  dialogType: document.querySelector("#dialogType"),
+  dialogName: document.querySelector("#dialogName"),
+  dialogSummary: document.querySelector("#dialogSummary"),
+  dialogTeams: document.querySelector("#dialogTeams"),
+  closeDialog: document.querySelector("#closeDialog"),
+  errorBox: document.querySelector("#errorBox"),
+};
+
+let appData = null;
+
+init().catch(showError);
+
+async function init() {
+  const [teamsText, pointsText, participantsText, resultsText, rulesText] = await Promise.all([
+    fetchText(paths.teams),
+    fetchText(paths.points),
+    fetchText(paths.participants),
+    fetchText(paths.results),
+    fetchText(paths.rules),
+  ]);
+
+  const teams = parseCsv(teamsText);
+  const points = parseCsv(pointsText);
+  const participants = parseCsv(participantsText);
+  const results = parseCsv(resultsText);
+  const pointsByEvent = new Map(points.map((row) => [normalize(row.Event), toNumber(row.Points)]));
+  const teamsByName = new Map(teams.map((team) => [normalize(team.Team), team]));
+  const teamScores = results
+    .map((row) => buildTeamScore(row, pointsByEvent))
+    .sort((a, b) => b.total - a.total || a.team.localeCompare(b.team, "it"));
+
+  const teamScoresByName = new Map(teamScores.map((team) => [normalize(team.team), team]));
+  const ranking = participants
+    .map((participant) => buildParticipantScore(participant, teamsByName, teamScoresByName))
+    .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, "it"));
+
+  applyRanks(ranking);
+  applyPrizes(ranking);
+
+  appData = { teams, points, ranking, teamScores, rulesText };
+  renderAll();
+  bindEvents();
+}
+
+async function fetchText(path) {
+  const response = await fetch(path, { cache: "no-store" });
+  if (!response.ok) {
+    throw new Error(`Impossibile leggere ${path}`);
+  }
+  return response.text();
+}
+
+function parseCsv(text) {
+  const rows = [];
+  let row = [];
+  let cell = "";
+  let insideQuotes = false;
+
+  for (let i = 0; i < text.length; i += 1) {
+    const char = text[i];
+    const next = text[i + 1];
+
+    if (char === '"' && insideQuotes && next === '"') {
+      cell += '"';
+      i += 1;
+    } else if (char === '"') {
+      insideQuotes = !insideQuotes;
+    } else if (char === ";" && !insideQuotes) {
+      row.push(cell);
+      cell = "";
+    } else if ((char === "\n" || char === "\r") && !insideQuotes) {
+      if (char === "\r" && next === "\n") i += 1;
+      row.push(cell);
+      if (row.some((value) => value.trim() !== "")) rows.push(row);
+      row = [];
+      cell = "";
+    } else {
+      cell += char;
+    }
+  }
+
+  row.push(cell);
+  if (row.some((value) => value.trim() !== "")) rows.push(row);
+
+  const [headers, ...records] = rows;
+  return records.map((record) =>
+    headers.reduce((item, header, index) => {
+      item[header.trim()] = (record[index] || "").trim();
+      return item;
+    }, {}),
+  );
+}
+
+function buildTeamScore(row, pointsByEvent) {
+  const multiplier = toNumber(row.Multiplier);
+  const scoringColumns = Object.keys(row).filter(
+    (key) => !["Team", "Group", "Multiplier"].includes(key),
+  );
+  const events = scoringColumns
+    .map((column) => scoreCell(column, row[column], pointsByEvent))
+    .filter(Boolean);
+  const base = events.reduce((sum, event) => sum + event.points, 0);
+
+  return {
+    team: row.Team,
+    group: row.Group,
+    multiplier,
+    base,
+    total: base * multiplier,
+    events,
+  };
+}
+
+function scoreCell(column, value, pointsByEvent) {
+  const clean = String(value || "").trim();
+  if (!clean) return null;
+
+  const numeric = parseNumber(clean);
+  if (numeric !== null) {
+    return { label: column, value: clean, points: numeric };
+  }
+
+  const lookup = pointsByEvent.get(normalize(clean));
+  return {
+    label: column,
+    value: clean,
+    points: Number.isFinite(lookup) ? lookup : 0,
+  };
+}
+
+function buildParticipantScore(participant, teamsByName, teamScoresByName) {
+  const picks = [participant.Squadra1, participant.Squadra2, participant.Squadra3].map((teamName) => {
+    const team = teamsByName.get(normalize(teamName));
+    const score = teamScoresByName.get(normalize(teamName));
+    return {
+      name: teamName,
+      group: team?.Group || score?.group || "-",
+      multiplier: toNumber(team?.Multiplier || score?.multiplier),
+      base: score?.base || 0,
+      total: score?.total || 0,
+      events: score?.events || [],
+    };
+  });
+
+  return {
+    name: participant.Partecipante,
+    picks,
+    total: picks.reduce((sum, pick) => sum + pick.total, 0),
+  };
+}
+
+function applyRanks(ranking) {
+  let previousScore = null;
+  let previousRank = 0;
+  ranking.forEach((participant, index) => {
+    const rank = participant.total === previousScore ? previousRank : index + 1;
+    participant.rank = rank;
+    previousScore = participant.total;
+    previousRank = rank;
+  });
+}
+
+function applyPrizes(ranking) {
+  ranking.forEach((participant) => {
+    participant.prize = 0;
+  });
+
+  const groups = [];
+  for (let i = 0; i < ranking.length; ) {
+    const sameScore = ranking.filter((participant) => participant.total === ranking[i].total);
+    groups.push({
+      start: i + 1,
+      end: i + sameScore.length,
+      participants: sameScore,
+    });
+    i += sameScore.length;
+  }
+
+  groups.forEach((group) => {
+    const prizePool = PRIZES
+      .slice(group.start - 1, group.end)
+      .reduce((sum, prize) => sum + (prize || 0), 0);
+    const prize = prizePool / group.participants.length;
+    group.participants.forEach((participant) => {
+      participant.prize = prize;
+    });
+  });
+}
+
+function renderAll() {
+  els.totalPrize.textContent = formatEuro(appData.ranking.length * ENTRY_FEE);
+  renderHero();
+  renderRanking();
+  renderTeams();
+  renderRules();
+}
+
+function renderHero() {
+  const leaders = appData.ranking.filter((participant) => participant.rank === 1);
+  const label = leaders.length === 1 ? leaders[0].name : `${leaders.length} in testa`;
+  els.leaderName.textContent = label;
+  els.leaderPoints.textContent = formatNumber(leaders[0]?.total || 0);
+  els.leaderMeta.textContent =
+    leaders.length === 1
+      ? `Premio provvisorio ${formatEuro(leaders[0].prize)}`
+      : `Premio diviso: ${formatEuro(leaders[0]?.prize || 0)} a testa`;
+  els.updatedAt.textContent = "Dati da resources";
+}
+
+function renderRanking() {
+  els.rankingList.innerHTML = appData.ranking
+    .map((participant) => {
+      const rankClass = participant.rank === 1 ? "gold" : participant.rank === 2 ? "green" : participant.rank === 3 ? "blue" : "";
+      const prize = participant.prize > 0 ? `<span>${formatEuro(participant.prize)}</span>` : "";
+      return `
+        <article class="rank-card ${participant.prize > 0 ? "prize" : ""}">
+          <div class="position ${rankClass}">${participant.rank}</div>
+          <button type="button" data-participant="${escapeHtml(participant.name)}">
+            <div class="person-name">${escapeHtml(participant.name)}</div>
+            <div class="person-teams">${participant.picks.map((pick) => escapeHtml(pick.name)).join(" / ")}</div>
+          </button>
+          <div class="score-cell">
+            <strong>${formatNumber(participant.total)}</strong>
+            ${prize}
+          </div>
+        </article>
+      `;
+    })
+    .join("");
+}
+
+function renderTeams() {
+  const query = normalize(els.teamSearch.value);
+  const teams = appData.teamScores.filter((team) => normalize(team.team).includes(query));
+  els.teamsCount.textContent = `${teams.length} squadre`;
+  els.teamsList.innerHTML = teams.map((team) => renderTeamCard(team, { clickable: true })).join("");
+}
+
+function renderTeamCard(team, options = {}) {
+  const tag = options.clickable ? "button" : "article";
+  const attrs = options.clickable
+    ? `type="button" class="team-card team-button" data-team="${escapeHtml(team.team)}"`
+    : 'class="team-card"';
+  const eventLabel = team.events.length === 1 ? "fase con punti" : "fasi con punti";
+
+  return `
+    <${tag} ${attrs}>
+      <div>
+        <div class="team-title">
+          <strong>${escapeHtml(team.team)}</strong>
+          <span class="badge group">Girone ${escapeHtml(team.group)}</span>
+          <span class="badge">x${formatNumber(team.multiplier)}</span>
+        </div>
+        <div class="team-meta">${formatNumber(team.base)} punti base - ${team.events.length} ${eventLabel}</div>
+      </div>
+      <div class="team-points">
+        <strong>${formatNumber(team.total)}</strong>
+        <span>punti</span>
+      </div>
+    </${tag}>
+  `;
+}
+
+function renderRules() {
+  els.rulesText.textContent = appData.rulesText.trim();
+  els.pointsTable.innerHTML = appData.points
+    .map(
+      (row) => `
+        <tr>
+          <td>${escapeHtml(row.Phase)}</td>
+          <td>${escapeHtml(row.Event)}</td>
+          <td>${formatNumber(toNumber(row.Points))}</td>
+        </tr>
+      `,
+    )
+    .join("");
+}
+
+function bindEvents() {
+  document.querySelectorAll(".tab").forEach((tab) => {
+    tab.addEventListener("click", () => {
+      document.querySelectorAll(".tab").forEach((item) => item.classList.remove("active"));
+      document.querySelectorAll(".panel").forEach((panel) => panel.classList.remove("active"));
+      tab.classList.add("active");
+      document.querySelector(`#${tab.dataset.tab}`).classList.add("active");
+    });
+  });
+
+  els.rankingList.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-participant]");
+    if (!button) return;
+    const participant = appData.ranking.find((item) => item.name === button.dataset.participant);
+    if (participant) openParticipant(participant);
+  });
+
+  els.teamsList.addEventListener("click", (event) => {
+    const button = event.target.closest("button[data-team]");
+    if (!button) return;
+    const team = appData.teamScores.find((item) => item.team === button.dataset.team);
+    if (team) openTeam(team);
+  });
+
+  els.teamSearch.addEventListener("input", renderTeams);
+  els.closeDialog.addEventListener("click", () => els.dialog.close());
+}
+
+function openParticipant(participant) {
+  els.dialogType.textContent = "Partecipante";
+  els.dialogName.textContent = participant.name;
+  els.dialogSummary.textContent = `${formatNumber(participant.total)} punti totali - premio provvisorio ${formatEuro(participant.prize)}`;
+  els.dialogTeams.innerHTML = participant.picks
+    .map((pick) => renderTeamDetail({
+      team: pick.name,
+      group: pick.group,
+      multiplier: pick.multiplier,
+      base: pick.base,
+      total: pick.total,
+      events: pick.events,
+    }))
+    .join("");
+  els.dialog.showModal();
+}
+
+function openTeam(team) {
+  els.dialogType.textContent = "Squadra";
+  els.dialogName.textContent = team.team;
+  els.dialogSummary.textContent = `Girone ${team.group} - coefficiente x${formatNumber(team.multiplier)} - ${formatNumber(team.total)} punti`;
+  els.dialogTeams.innerHTML = renderTeamDetail(team);
+  els.dialog.showModal();
+}
+
+function renderTeamDetail(team) {
+  return `
+    <section class="journey-card">
+      <div class="journey-top">
+        <div>
+          <h3>${escapeHtml(team.team)}</h3>
+          <p>Girone ${escapeHtml(team.group)} - coefficiente x${formatNumber(team.multiplier)}</p>
+        </div>
+        <div class="journey-score">
+          <strong>${formatNumber(team.total)}</strong>
+          <span>punti</span>
+        </div>
+      </div>
+      <div class="journey-formula">
+        ${formatNumber(team.base)} punti base x ${formatNumber(team.multiplier)} = ${formatNumber(team.total)}
+      </div>
+      ${renderJourney(team)}
+    </section>
+  `;
+}
+
+function renderJourney(team) {
+  if (!team.events.length) {
+    return `
+      <div class="empty-journey">
+        Nessun risultato inserito per ora.
+      </div>
+    `;
+  }
+
+  return `
+    <div class="journey-list">
+      ${team.events
+        .map((event) => {
+          const multiplied = event.points * team.multiplier;
+          return `
+            <div class="journey-step">
+              <div class="journey-marker"></div>
+              <div class="journey-copy">
+                <strong>${escapeHtml(event.label)}</strong>
+                <span>${escapeHtml(event.value)}</span>
+              </div>
+              <div class="journey-points">
+                <strong>+${formatNumber(multiplied)}</strong>
+                <span>${formatNumber(event.points)} base</span>
+              </div>
+            </div>
+          `;
+        })
+        .join("")}
+    </div>
+  `;
+}
+
+function normalize(value) {
+  return String(value || "")
+    .trim()
+    .toLocaleUpperCase("it-IT");
+}
+
+function toNumber(value) {
+  return parseNumber(value) ?? 0;
+}
+
+function parseNumber(value) {
+  const clean = String(value || "").trim();
+  if (!/^-?\d+([,.]\d+)?$/.test(clean)) return null;
+  const parsed = Number(clean.replace(",", "."));
+  return Number.isFinite(parsed) ? parsed : null;
+}
+
+function formatNumber(value) {
+  return new Intl.NumberFormat("it-IT", { maximumFractionDigits: 2 }).format(value);
+}
+
+function formatEuro(value) {
+  return new Intl.NumberFormat("it-IT", {
+    style: "currency",
+    currency: "EUR",
+    maximumFractionDigits: value % 1 === 0 ? 0 : 2,
+  }).format(value);
+}
+
+function escapeHtml(value) {
+  return String(value || "")
+    .replaceAll("&", "&amp;")
+    .replaceAll("<", "&lt;")
+    .replaceAll(">", "&gt;")
+    .replaceAll('"', "&quot;")
+    .replaceAll("'", "&#039;");
+}
+
+function showError(error) {
+  els.errorBox.hidden = false;
+  els.errorBox.textContent = error.message || "Errore durante il caricamento dei dati.";
+}

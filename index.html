@@ -1,0 +1,100 @@
+<!doctype html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Fantamondiale Tecnologica</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <div class="app-shell">
+      <header class="topbar">
+        <div class="brand-lockup">
+          <img src="tecnocasa-logo.png" alt="Tecnocasa" />
+          <div>
+            <p class="eyebrow">Team Building</p>
+            <h1>Fantamondiale Tecnologica</h1>
+          </div>
+        </div>
+        <div class="pot">
+          <span>Montepremi</span>
+          <strong id="totalPrize">-</strong>
+        </div>
+      </header>
+
+      <main>
+        <section class="score-hero" aria-label="Podio">
+          <div class="hero-copy">
+            <p class="eyebrow">Classifica live</p>
+            <h2 id="leaderName">Caricamento...</h2>
+            <p id="leaderMeta">Leggo i dati da resources.</p>
+          </div>
+          <div class="hero-score">
+            <span id="leaderPoints">-</span>
+            <small>punti</small>
+          </div>
+        </section>
+
+        <nav class="tabs" aria-label="Sezioni">
+          <button class="tab active" type="button" data-tab="ranking">Classifica</button>
+          <button class="tab" type="button" data-tab="teams">Squadre</button>
+          <button class="tab" type="button" data-tab="rules">Regolamento</button>
+        </nav>
+
+        <section id="ranking" class="panel active" aria-labelledby="rankingTitle">
+          <div class="section-heading">
+            <h2 id="rankingTitle">Partecipanti</h2>
+            <span id="updatedAt"></span>
+          </div>
+          <div id="rankingList" class="ranking-list"></div>
+        </section>
+
+        <section id="teams" class="panel" aria-labelledby="teamsTitle">
+          <div class="section-heading">
+            <h2 id="teamsTitle">Squadre</h2>
+            <span id="teamsCount"></span>
+          </div>
+          <div class="search-wrap">
+            <input id="teamSearch" type="search" placeholder="Cerca squadra" autocomplete="off" />
+          </div>
+          <div id="teamsList" class="teams-list"></div>
+        </section>
+
+        <section id="rules" class="panel" aria-labelledby="rulesTitle">
+          <div class="section-heading">
+            <h2 id="rulesTitle">Regolamento</h2>
+          </div>
+          <div id="rulesText" class="rules-text"></div>
+          <div class="points-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Fase</th>
+                  <th>Evento</th>
+                  <th>Punti</th>
+                </tr>
+              </thead>
+              <tbody id="pointsTable"></tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <dialog id="participantDialog">
+      <div class="dialog-head">
+        <div>
+          <p class="eyebrow" id="dialogType">Dettaglio</p>
+          <h2 id="dialogName"></h2>
+          <p id="dialogSummary" class="dialog-summary"></p>
+        </div>
+        <button class="icon-button" type="button" id="closeDialog" aria-label="Chiudi">x</button>
+      </div>
+      <div id="dialogTeams" class="dialog-teams"></div>
+    </dialog>
+
+    <div id="errorBox" class="error-box" hidden></div>
+
+    <script src="app.js"></script>
+  </body>
+</html>
