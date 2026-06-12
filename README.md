@@ -2,7 +2,7 @@
 
 Web app semplice per gestire il Totomondiale dell'ufficio Tecnocasa.
 
-L'app e' pensata per mobile, legge direttamente i file dentro `resources/` e calcola:
+L'app e' pensata per mobile, legge direttamente i file dentro `public/resources/` e calcola:
 
 - classifica dei partecipanti;
 - premi provvisori, inclusi i pari merito;
@@ -16,7 +16,7 @@ L'app e' pensata per mobile, legge direttamente i file dentro `resources/` e cal
 Serve Node.js.
 
 ```powershell
-node local-server.cjs
+node scripts/local-server.cjs
 ```
 
 Poi apri:
@@ -35,7 +35,7 @@ Su alcuni PC Windows `npm run dev` puo' essere bloccato dalla policy di PowerShe
 
 ## File dati
 
-I dati modificabili sono in `resources/`:
+I dati modificabili sono in `public/resources/`:
 
 - `teams.csv`: squadre, girone e coefficiente;
 - `punteggi.csv`: punteggi associati agli eventi;
@@ -69,28 +69,32 @@ In caso di pari merito, i premi delle posizioni coinvolte vengono sommati e divi
 
 ## Deploy
 
-Vercel va bene per questo progetto perché l'app e' statica.
+Vercel va bene per questo progetto perché l'app e' statica e pubblica direttamente `public/`.
 
 Le istruzioni complete sono in [DEPLOY.md](DEPLOY.md).
 
-Nota per Vercel: il file JavaScript frontend si chiama `main.js` per evitare che venga interpretato come funzione serverless.
+Nota per Vercel: i file pubblici stanno in `public/` e il server locale sta in `scripts/`, cosi Vercel non crea Serverless Function.
 
 ## Struttura
 
 ```text
 .
-├── main.js
-├── index.html
-├── styles.css
-├── local-server.cjs
-├── vercel.json
-├── tecnocasa-logo.png
+├── package.json
 ├── DEPLOY.md
 ├── README.md
-└── resources/
-    ├── partecipanti.csv
-    ├── punteggi.csv
-    ├── regolamento.txt
-    ├── risultati.csv
-    └── teams.csv
+├── vercel.json
+├── scripts/
+│   └── local-server.cjs
+└── public/
+    ├── index.html
+    ├── main.js
+    ├── styles.css
+    ├── tecnocasa-logo.png
+    ├── favicon.ico
+    └── resources/
+        ├── partecipanti.csv
+        ├── punteggi.csv
+        ├── regolamento.txt
+        ├── risultati.csv
+        └── teams.csv
 ```

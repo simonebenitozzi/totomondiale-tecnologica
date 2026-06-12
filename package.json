@@ -1,5 +1,5 @@
 {
   "scripts": {
-    "dev": "node local-server.cjs"
+    "dev": "node scripts/local-server.cjs"
   }
 }

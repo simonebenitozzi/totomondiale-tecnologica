@@ -2,26 +2,26 @@
 
 Si, Vercel va benissimo per questa app.
 
-L'app e' statica: `index.html`, `styles.css`, `main.js` e i file dentro `resources/` vengono serviti direttamente. Non serve un backend vero: quando modifichi i CSV o `regolamento.txt`, basta fare un nuovo deploy e la classifica si aggiorna.
+L'app e' statica: Vercel pubblica direttamente la cartella `public/`. Non serve un backend vero: quando modifichi i CSV o `regolamento.txt`, basta fare un nuovo deploy e la classifica si aggiorna.
 
 ## Preparazione
 
 1. Verifica che nel progetto ci siano questi file:
-   - `index.html`
-   - `styles.css`
-   - `main.js`
+   - `public/index.html`
+   - `public/styles.css`
+   - `public/main.js`
+   - `public/tecnocasa-logo.png`
+   - `public/resources/teams.csv`
+   - `public/resources/punteggi.csv`
+   - `public/resources/partecipanti.csv`
+   - `public/resources/risultati.csv`
+   - `public/resources/regolamento.txt`
    - `vercel.json`
-   - `tecnocasa-logo.png`
-   - `resources/teams.csv`
-   - `resources/punteggi.csv`
-   - `resources/partecipanti.csv`
-   - `resources/risultati.csv`
-   - `resources/regolamento.txt`
 
 2. Prova l'app in locale:
 
 ```powershell
-node local-server.cjs
+node scripts/local-server.cjs
 ```
 
 3. Apri:
@@ -38,11 +38,11 @@ http://127.0.0.1:4173
 4. Lascia vuoti i comandi di build, oppure usa queste impostazioni:
    - Framework Preset: `Other`
    - Build Command: vuoto
-   - Output Directory: `.`
+   - Output Directory: `public`
    - Install Command: vuoto
 5. Conferma con `Deploy`.
 
-Nota: il JavaScript frontend si chiama `main.js` e il server locale si chiama `local-server.cjs` per evitare che Vercel li interpreti come Serverless Function.
+Nota: i file pubblici stanno in `public/` e il server locale sta in `scripts/`, cosi Vercel non li interpreta come Serverless Function.
 
 ## Deploy con Vercel CLI
 
@@ -72,8 +72,8 @@ vercel --prod
 
 ## Aggiornare risultati e partecipanti
 
-1. Modifica i file in `resources/`.
-2. Controlla in locale con `node local-server.cjs`.
+1. Modifica i file in `public/resources/`.
+2. Controlla in locale con `node scripts/local-server.cjs`.
 3. Fai commit e push se usi Git.
 4. Vercel pubblichera' automaticamente la nuova versione.
 
@@ -94,5 +94,5 @@ npm.cmd run dev
 oppure direttamente:
 
 ```powershell
-node local-server.cjs
+node scripts/local-server.cjs
 ```
