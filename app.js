@@ -1,5 +1,55 @@
 const PRIZES = [70, 40, 20];
 const ENTRY_FEE = 10;
+const FLAGS = {
+  "MESSICO": "🇲🇽",
+  "REP. CECA": "🇨🇿",
+  "KOREA": "🇰🇷",
+  "SUDAFRICA": "🇿🇦",
+  "SVIZZERA": "🇨🇭",
+  "BOSNIA": "🇧🇦",
+  "CANADA": "🇨🇦",
+  "QATAR": "🇶🇦",
+  "BRASILE": "🇧🇷",
+  "MAROCCO": "🇲🇦",
+  "SCOZIA": "🏴",
+  "HAITI": "🇭🇹",
+  "USA": "🇺🇸",
+  "TURCHIA": "🇹🇷",
+  "PARAGUAY": "🇵🇾",
+  "AUSTRALIA": "🇦🇺",
+  "GERMANIA": "🇩🇪",
+  "ECUADOR": "🇪🇨",
+  "COSTA D'AVORIO": "🇨🇮",
+  "CURACAO": "🇨🇼",
+  "OLANDA": "🇳🇱",
+  "GIAPPONE": "🇯🇵",
+  "SVEZIA": "🇸🇪",
+  "TUNISIA": "🇹🇳",
+  "BELGIO": "🇧🇪",
+  "EGITTO": "🇪🇬",
+  "IRAN": "🇮🇷",
+  "NUOVA ZELANDA": "🇳🇿",
+  "SPAGNA": "🇪🇸",
+  "URUGUAY": "🇺🇾",
+  "ARABIA SAUDITA": "🇸🇦",
+  "CAPO VERDE": "🇨🇻",
+  "FRANCIA": "🇫🇷",
+  "NORVEGIA": "🇳🇴",
+  "SENEGAL": "🇸🇳",
+  "IRAQ": "🇮🇶",
+  "ARGENTINA": "🇦🇷",
+  "AUSTRIA": "🇦🇹",
+  "ALGERIA": "🇩🇿",
+  "GIORDANIA": "🇯🇴",
+  "PORTOGALLO": "🇵🇹",
+  "COLOMBIA": "🇨🇴",
+  "CONGO": "🇨🇬",
+  "UZBEKISTAN": "🇺🇿",
+  "INGHILTERRA": "🏴",
+  "CROAZIA": "🇭🇷",
+  "GHANA": "🇬🇭",
+  "PANAMA": "🇵🇦",
+};
 
 const paths = {
   teams: "resources/teams.csv",
@@ -228,7 +278,7 @@ function renderHero() {
     leaders.length === 1
       ? `Premio provvisorio ${formatEuro(leaders[0].prize)}`
       : `Premio diviso: ${formatEuro(leaders[0]?.prize || 0)} a testa`;
-  els.updatedAt.textContent = "Dati da resources";
+  els.updatedAt.textContent = "Punteggi Totali";
 }
 
 function renderRanking() {
@@ -241,7 +291,7 @@ function renderRanking() {
           <div class="position ${rankClass}">${participant.rank}</div>
           <button type="button" data-participant="${escapeHtml(participant.name)}">
             <div class="person-name">${escapeHtml(participant.name)}</div>
-            <div class="person-teams">${participant.picks.map((pick) => escapeHtml(pick.name)).join(" / ")}</div>
+            <div class="person-teams">${participant.picks.map((pick) => `${teamFlag(pick.name)} ${escapeHtml(pick.name)}`).join(" / ")}</div>
           </button>
           <div class="score-cell">
             <strong>${formatNumber(participant.total)}</strong>
@@ -271,6 +321,7 @@ function renderTeamCard(team, options = {}) {
     <${tag} ${attrs}>
       <div>
         <div class="team-title">
+          <span class="flag" aria-hidden="true">${teamFlag(team.team)}</span>
           <strong>${escapeHtml(team.team)}</strong>
           <span class="badge group">Girone ${escapeHtml(team.group)}</span>
           <span class="badge">x${formatNumber(team.multiplier)}</span>
@@ -347,7 +398,7 @@ function openParticipant(participant) {
 
 function openTeam(team) {
   els.dialogType.textContent = "Squadra";
-  els.dialogName.textContent = team.team;
+  els.dialogName.textContent = `${teamFlag(team.team)} ${team.team}`;
   els.dialogSummary.textContent = `Girone ${team.group} - coefficiente x${formatNumber(team.multiplier)} - ${formatNumber(team.total)} punti`;
   els.dialogTeams.innerHTML = renderTeamDetail(team);
   els.dialog.showModal();
@@ -358,7 +409,7 @@ function renderTeamDetail(team) {
     <section class="journey-card">
       <div class="journey-top">
         <div>
-          <h3>${escapeHtml(team.team)}</h3>
+          <h3><span class="flag large" aria-hidden="true">${teamFlag(team.team)}</span>${escapeHtml(team.team)}</h3>
           <p>Girone ${escapeHtml(team.group)} - coefficiente x${formatNumber(team.multiplier)}</p>
         </div>
         <div class="journey-score">
@@ -411,6 +462,10 @@ function normalize(value) {
   return String(value || "")
     .trim()
     .toLocaleUpperCase("it-IT");
+}
+
+function teamFlag(teamName) {
+  return FLAGS[normalize(teamName)] || "🏳";
 }
 
 function toNumber(value) {
