@@ -7,7 +7,7 @@ A ogni squadra viene assegnato un coefficiente in base alla sua forza sulla cart
 - coefficiente 5 per le squadre considerate meno favorite.
 
 Durante il torneo ogni squadra guadagna punti in base ai risultati ottenuti nelle varie fasi.
-Il punteggio valido per il Fantamondiale si calcola cosi:
+Il punteggio valido per il Totomondiale si calcola cosi:
 
 punti squadra = punti ottenuti nel torneo x coefficiente squadra
 

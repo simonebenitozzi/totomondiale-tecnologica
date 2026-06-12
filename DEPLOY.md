@@ -56,7 +56,7 @@ Alla prima pubblicazione Vercel fara' alcune domande. Puoi rispondere cosi:
 Set up and deploy? yes
 Which scope? scegli il tuo account/team
 Link to existing project? no
-Project name? fantamondiale-tecnologica
+Project name? totomondiale-tecnologica
 In which directory is your code located? ./
 Want to modify settings? no
 ```

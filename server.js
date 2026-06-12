@@ -39,5 +39,5 @@ http
     });
   })
   .listen(port, host, () => {
-    console.log(`Fantamondiale pronto su http://${host}:${port}`);
+    console.log(`Totomondiale pronto su http://${host}:${port}`);
   });
