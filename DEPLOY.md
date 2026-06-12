@@ -42,7 +42,7 @@ http://127.0.0.1:4173
    - Install Command: vuoto
 5. Conferma con `Deploy`.
 
-Nota: i file pubblici stanno in `public/` e il server locale sta in `scripts/`, cosi Vercel non li interpreta come Serverless Function.
+Nota: `vercel.json` forza il deploy statico con `@vercel/static`, cosi Vercel non cerca un entrypoint Node e non crea Serverless Function.
 
 ## Deploy con Vercel CLI
 

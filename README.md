@@ -73,7 +73,7 @@ Vercel va bene per questo progetto perché l'app e' statica e pubblica direttame
 
 Le istruzioni complete sono in [DEPLOY.md](DEPLOY.md).
 
-Nota per Vercel: i file pubblici stanno in `public/` e il server locale sta in `scripts/`, cosi Vercel non crea Serverless Function.
+Nota per Vercel: `vercel.json` forza il deploy statico con `@vercel/static`, cosi Vercel non cerca un entrypoint Node e non crea Serverless Function.
 
 ## Struttura
 

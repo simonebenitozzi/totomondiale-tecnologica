@@ -1,5 +1,27 @@
 {
-  "outputDirectory": "public",
-  "cleanUrls": true,
-  "trailingSlash": false
+  "version": 2,
+  "builds": [
+    {
+      "src": "public/**",
+      "use": "@vercel/static"
+    }
+  ],
+  "routes": [
+    {
+      "src": "/favicon.ico",
+      "dest": "public/favicon.ico"
+    },
+    {
+      "src": "/resources/(.*)",
+      "dest": "public/resources/$1"
+    },
+    {
+      "src": "/(.*\\.(?:html|css|js|png|ico|csv|txt))",
+      "dest": "public/$1"
+    },
+    {
+      "src": "/",
+      "dest": "public/index.html"
+    }
+  ]
 }
