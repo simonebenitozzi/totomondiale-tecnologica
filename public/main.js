@@ -135,6 +135,7 @@ async function fetchText(path) {
 }
 
 function parseCsv(text) {
+  const delimiter = detectDelimiter(text);
   const rows = [];
   let row = [];
   let cell = "";
@@ -149,7 +150,7 @@ function parseCsv(text) {
       i += 1;
     } else if (char === '"') {
       insideQuotes = !insideQuotes;
-    } else if (char === ";" && !insideQuotes) {
+    } else if (char === delimiter && !insideQuotes) {
       row.push(cell);
       cell = "";
     } else if ((char === "\n" || char === "\r") && !insideQuotes) {
@@ -173,6 +174,37 @@ function parseCsv(text) {
       return item;
     }, {}),
   );
+}
+
+function detectDelimiter(text) {
+  const firstDataLine = text
+    .split(/\r?\n/)
+    .find((line) => line.trim() !== "");
+  if (!firstDataLine) return ";";
+
+  const semicolons = countDelimiter(firstDataLine, ";");
+  const commas = countDelimiter(firstDataLine, ",");
+  return commas > semicolons ? "," : ";";
+}
+
+function countDelimiter(line, delimiter) {
+  let count = 0;
+  let insideQuotes = false;
+
+  for (let i = 0; i < line.length; i += 1) {
+    const char = line[i];
+    const next = line[i + 1];
+
+    if (char === '"' && insideQuotes && next === '"') {
+      i += 1;
+    } else if (char === '"') {
+      insideQuotes = !insideQuotes;
+    } else if (char === delimiter && !insideQuotes) {
+      count += 1;
+    }
+  }
+
+  return count;
 }
 
 function buildTeamScore(row, pointsByEvent) {
