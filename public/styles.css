@@ -361,6 +361,62 @@ h2 {
   background: #fff;
 }
 
+.team-sortbar {
+  display: grid;
+  gap: 8px;
+  margin-bottom: 12px;
+  padding: 8px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.86);
+  box-shadow: 0 8px 22px rgba(17, 19, 25, 0.05);
+}
+
+.sort-fields,
+.sort-direction {
+  display: grid;
+  gap: 6px;
+}
+
+.sort-fields {
+  grid-template-columns: repeat(4, 1fr);
+}
+
+.sort-direction {
+  grid-template-columns: repeat(2, 1fr);
+  padding: 4px;
+  border-radius: 8px;
+  background: rgba(0, 87, 184, 0.08);
+}
+
+.sort-chip,
+.direction-chip {
+  min-height: 38px;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: #fff;
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.sort-chip.active {
+  color: #fff;
+  background: var(--green);
+  box-shadow: 0 8px 18px rgba(0, 132, 61, 0.18);
+}
+
+.direction-chip.active {
+  color: #fff;
+  background: linear-gradient(135deg, var(--blue), var(--green));
+  box-shadow: 0 8px 18px rgba(0, 87, 184, 0.18);
+}
+
+.direction-chip {
+  font-size: 1.25rem;
+  line-height: 1;
+}
+
 .team-card {
   position: relative;
   grid-template-columns: 1fr auto;
@@ -443,6 +499,32 @@ h2 {
 
 .badge.group {
   background: var(--blue);
+}
+
+.group-box {
+  display: inline-grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid rgba(0, 87, 184, 0.18);
+  border-radius: 7px;
+  color: var(--blue);
+  background: rgba(0, 87, 184, 0.08);
+  font-size: 0.82rem;
+  font-weight: 950;
+}
+
+.picked-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  padding: 2px 8px;
+  border-radius: 999px;
+  color: var(--ink);
+  background: rgba(247, 201, 72, 0.35);
+  font-size: 0.76rem;
+  font-weight: 950;
 }
 
 .team-points {
@@ -687,6 +769,43 @@ dialog::backdrop {
   font-weight: 800;
 }
 
+.picked-panel {
+  margin: 12px 0;
+  padding: 12px;
+  border: 1px solid rgba(247, 201, 72, 0.45);
+  border-radius: 8px;
+  background: rgba(247, 201, 72, 0.12);
+}
+
+.picked-panel h4 {
+  margin: 0 0 8px;
+  color: var(--ink);
+  font-size: 0.88rem;
+}
+
+.picked-panel p {
+  margin: 0;
+  color: var(--muted);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.picked-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.picked-list span {
+  padding: 6px 8px;
+  border-radius: 999px;
+  color: var(--ink);
+  background: #fff;
+  font-size: 0.78rem;
+  font-weight: 850;
+  box-shadow: 0 5px 12px rgba(17, 19, 25, 0.06);
+}
+
 .error-box {
   position: fixed;
   right: 12px;
@@ -756,5 +875,9 @@ dialog::backdrop {
   .journey-points {
     grid-column: 2;
     text-align: left;
+  }
+
+  .sort-fields {
+    grid-template-columns: repeat(2, 1fr);
   }
 }

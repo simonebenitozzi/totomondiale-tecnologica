@@ -69,6 +69,8 @@ const els = {
   teamsCount: document.querySelector("#teamsCount"),
   teamsList: document.querySelector("#teamsList"),
   teamSearch: document.querySelector("#teamSearch"),
+  teamSortButtons: document.querySelectorAll("[data-team-sort]"),
+  teamDirectionButtons: document.querySelectorAll("[data-team-direction]"),
   rulesText: document.querySelector("#rulesText"),
   pointsTable: document.querySelector("#pointsTable"),
   dialog: document.querySelector("#participantDialog"),
@@ -81,6 +83,10 @@ const els = {
 };
 
 let appData = null;
+let teamSort = {
+  field: "points",
+  direction: "desc",
+};
 
 init().catch(showError);
 
@@ -99,8 +105,12 @@ async function init() {
   const results = parseCsv(resultsText);
   const pointsByEvent = new Map(points.map((row) => [normalize(row.Event), toNumber(row.Points)]));
   const teamsByName = new Map(teams.map((team) => [normalize(team.Team), team]));
+  const pickedByTeam = buildPickedByTeam(participants);
   const teamScores = results
-    .map((row) => buildTeamScore(row, pointsByEvent))
+    .map((row) => ({
+      ...buildTeamScore(row, pointsByEvent),
+      pickedBy: pickedByTeam.get(normalize(row.Team)) || [],
+    }))
     .sort((a, b) => b.total - a.total || a.team.localeCompare(b.team, "it"));
 
   const teamScoresByName = new Map(teamScores.map((team) => [normalize(team.team), team]));
@@ -223,6 +233,18 @@ function buildParticipantScore(participant, teamsByName, teamScoresByName) {
   };
 }
 
+function buildPickedByTeam(participants) {
+  const pickedByTeam = new Map();
+  participants.forEach((participant) => {
+    [participant.Squadra1, participant.Squadra2, participant.Squadra3].forEach((teamName) => {
+      const key = normalize(teamName);
+      if (!pickedByTeam.has(key)) pickedByTeam.set(key, []);
+      pickedByTeam.get(key).push(participant.Partecipante);
+    });
+  });
+  return pickedByTeam;
+}
+
 function applyRanks(ranking) {
   let previousScore = null;
   let previousRank = 0;
@@ -305,9 +327,25 @@ function renderRanking() {
 
 function renderTeams() {
   const query = normalize(els.teamSearch.value);
-  const teams = appData.teamScores.filter((team) => normalize(team.team).includes(query));
-  els.teamsCount.textContent = `${teams.length} squadre`;
+  const teams = sortTeams(appData.teamScores.filter((team) => normalize(team.team).includes(query)));
+  els.teamsCount.textContent = `${teams.length} nazionali`;
   els.teamsList.innerHTML = teams.map((team) => renderTeamCard(team, { clickable: true })).join("");
+}
+
+function sortTeams(teams) {
+  const direction = teamSort.direction === "asc" ? 1 : -1;
+  return [...teams].sort((a, b) => {
+    const primary = compareTeamValue(a, b, teamSort.field);
+    if (primary !== 0) return primary * direction;
+    return a.team.localeCompare(b.team, "it");
+  });
+}
+
+function compareTeamValue(a, b, field) {
+  if (field === "name") return a.team.localeCompare(b.team, "it");
+  if (field === "group") return a.group.localeCompare(b.group, "it");
+  if (field === "multiplier") return a.multiplier - b.multiplier;
+  return a.total - b.total;
 }
 
 function renderTeamCard(team, options = {}) {
@@ -323,8 +361,9 @@ function renderTeamCard(team, options = {}) {
         <div class="team-title">
           <span class="flag" aria-hidden="true">${teamFlag(team.team)}</span>
           <strong>${escapeHtml(team.team)}</strong>
-          <span class="badge group">Girone ${escapeHtml(team.group)}</span>
+          <span class="group-box" aria-label="Girone ${escapeHtml(team.group)}">${escapeHtml(team.group)}</span>
           <span class="badge">x${formatNumber(team.multiplier)}</span>
+          <span class="picked-badge">${formatNumber(team.pickedBy?.length || 0)} 👥</span>
         </div>
         <div class="team-meta">${formatNumber(team.base)} punti base - ${team.events.length} ${eventLabel}</div>
       </div>
@@ -376,7 +415,30 @@ function bindEvents() {
   });
 
   els.teamSearch.addEventListener("input", renderTeams);
+  els.teamSortButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      teamSort.field = button.dataset.teamSort;
+      updateSortControls();
+      renderTeams();
+    });
+  });
+  els.teamDirectionButtons.forEach((button) => {
+    button.addEventListener("click", () => {
+      teamSort.direction = button.dataset.teamDirection;
+      updateSortControls();
+      renderTeams();
+    });
+  });
   els.closeDialog.addEventListener("click", () => els.dialog.close());
+}
+
+function updateSortControls() {
+  els.teamSortButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.teamSort === teamSort.field);
+  });
+  els.teamDirectionButtons.forEach((button) => {
+    button.classList.toggle("active", button.dataset.teamDirection === teamSort.direction);
+  });
 }
 
 function openParticipant(participant) {
@@ -399,7 +461,7 @@ function openParticipant(participant) {
 function openTeam(team) {
   els.dialogType.textContent = "Squadra";
   els.dialogName.textContent = `${teamFlag(team.team)} ${team.team}`;
-  els.dialogSummary.textContent = `Girone ${team.group} - coefficiente x${formatNumber(team.multiplier)} - ${formatNumber(team.total)} punti`;
+  els.dialogSummary.textContent = `Girone ${team.group} - coefficiente x${formatNumber(team.multiplier)} - scelta da ${formatNumber(team.pickedBy.length)} partecipanti`;
   els.dialogTeams.innerHTML = renderTeamDetail(team);
   els.dialog.showModal();
 }
@@ -420,8 +482,30 @@ function renderTeamDetail(team) {
       <div class="journey-formula">
         ${formatNumber(team.base)} punti base x ${formatNumber(team.multiplier)} = ${formatNumber(team.total)}
       </div>
+      ${renderPickedBy(team)}
       ${renderJourney(team)}
     </section>
+  `;
+}
+
+function renderPickedBy(team) {
+  const pickedBy = getPickedBy(team.team);
+  if (!pickedBy.length) {
+    return `
+      <div class="picked-panel">
+        <h4>Scelta da</h4>
+        <p>Nessun partecipante</p>
+      </div>
+    `;
+  }
+
+  return `
+    <div class="picked-panel">
+      <h4>Scelta da ${formatNumber(pickedBy.length)} partecipanti</h4>
+      <div class="picked-list">
+        ${pickedBy.map((name) => `<span>${escapeHtml(name)}</span>`).join("")}
+      </div>
+    </div>
   `;
 }
 
@@ -466,6 +550,11 @@ function normalize(value) {
 
 function teamFlag(teamName) {
   return FLAGS[normalize(teamName)] || "🏳";
+}
+
+function getPickedBy(teamName) {
+  const team = appData?.teamScores.find((item) => normalize(item.team) === normalize(teamName));
+  return team?.pickedBy || [];
 }
 
 function toNumber(value) {

@@ -33,3 +33,6 @@ build/
 coverage/
 tmp/
 temp/
+
+# 
+project_instructions.md

@@ -39,7 +39,7 @@
 
         <nav class="tabs" aria-label="Sezioni">
           <button class="tab active" type="button" data-tab="ranking">Classifica</button>
-          <button class="tab" type="button" data-tab="teams">Squadre</button>
+          <button class="tab" type="button" data-tab="teams">Nazionali</button>
           <button class="tab" type="button" data-tab="rules">Regolamento</button>
         </nav>
 
@@ -53,11 +53,23 @@
 
         <section id="teams" class="panel" aria-labelledby="teamsTitle">
           <div class="section-heading">
-            <h2 id="teamsTitle">Squadre</h2>
+            <h2 id="teamsTitle">Nazionali</h2>
             <span id="teamsCount"></span>
           </div>
           <div class="search-wrap">
-            <input id="teamSearch" type="search" placeholder="Cerca squadra" autocomplete="off" />
+            <input id="teamSearch" type="search" placeholder="Cerca nazionale" autocomplete="off" />
+          </div>
+          <div class="team-sortbar" aria-label="Ordina nazionali">
+            <div class="sort-fields">
+              <button class="sort-chip active" type="button" data-team-sort="points">Punti</button>
+              <button class="sort-chip" type="button" data-team-sort="name">A-Z</button>
+              <button class="sort-chip" type="button" data-team-sort="group">Girone</button>
+              <button class="sort-chip" type="button" data-team-sort="multiplier">Coeff.</button>
+            </div>
+            <div class="sort-direction" aria-label="Direzione ordinamento">
+              <button class="direction-chip" type="button" data-team-direction="asc" aria-label="Ordine crescente">↑</button>
+              <button class="direction-chip active" type="button" data-team-direction="desc" aria-label="Ordine decrescente">↓</button>
+            </div>
           </div>
           <div id="teamsList" class="teams-list"></div>
         </section>
