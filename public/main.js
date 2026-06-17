@@ -71,6 +71,7 @@ const els = {
   teamSearch: document.querySelector("#teamSearch"),
   teamSortButtons: document.querySelectorAll("[data-team-sort]"),
   teamDirectionButtons: document.querySelectorAll("[data-team-direction]"),
+  pickedFilter: document.querySelector("#pickedFilter"),
   rulesText: document.querySelector("#rulesText"),
   pointsTable: document.querySelector("#pointsTable"),
   dialog: document.querySelector("#participantDialog"),
@@ -87,6 +88,7 @@ let teamSort = {
   field: "points",
   direction: "desc",
 };
+let showPickedOnly = false;
 
 init().catch(showError);
 
@@ -359,7 +361,12 @@ function renderRanking() {
 
 function renderTeams() {
   const query = normalize(els.teamSearch.value);
-  const teams = sortTeams(appData.teamScores.filter((team) => normalize(team.team).includes(query)));
+  const filteredTeams = appData.teamScores.filter((team) => {
+    const matchesSearch = normalize(team.team).includes(query);
+    const matchesPickedFilter = !showPickedOnly || team.pickedBy.length > 0;
+    return matchesSearch && matchesPickedFilter;
+  });
+  const teams = sortTeams(filteredTeams);
   els.teamsCount.textContent = `${teams.length} nazionali`;
   els.teamsList.innerHTML = teams.map((team) => renderTeamCard(team, { clickable: true })).join("");
 }
@@ -461,6 +468,11 @@ function bindEvents() {
       renderTeams();
     });
   });
+  els.pickedFilter.addEventListener("click", () => {
+    showPickedOnly = !showPickedOnly;
+    updateSortControls();
+    renderTeams();
+  });
   els.closeDialog.addEventListener("click", () => els.dialog.close());
 }
 
@@ -471,6 +483,8 @@ function updateSortControls() {
   els.teamDirectionButtons.forEach((button) => {
     button.classList.toggle("active", button.dataset.teamDirection === teamSort.direction);
   });
+  els.pickedFilter.classList.toggle("active", showPickedOnly);
+  els.pickedFilter.setAttribute("aria-pressed", String(showPickedOnly));
 }
 
 function openParticipant(participant) {

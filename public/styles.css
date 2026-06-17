@@ -383,14 +383,15 @@ h2 {
 }
 
 .sort-direction {
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: 1fr 1fr 1.15fr;
   padding: 4px;
   border-radius: 8px;
   background: rgba(0, 87, 184, 0.08);
 }
 
 .sort-chip,
-.direction-chip {
+.direction-chip,
+.picked-filter-chip {
   min-height: 38px;
   border: 1px solid transparent;
   border-radius: 7px;
@@ -412,9 +413,20 @@ h2 {
   box-shadow: 0 8px 18px rgba(0, 87, 184, 0.18);
 }
 
-.direction-chip {
+.picked-filter-chip.active {
+  color: var(--ink);
+  background: var(--gold);
+  box-shadow: 0 8px 18px rgba(247, 201, 72, 0.28);
+}
+
+.direction-chip,
+.picked-filter-chip {
   font-size: 1.25rem;
   line-height: 1;
+}
+
+.picked-filter-chip {
+  font-size: 0.95rem;
 }
 
 .team-card {
