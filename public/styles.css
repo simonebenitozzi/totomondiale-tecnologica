@@ -494,12 +494,16 @@ h2 {
 }
 
 .team-card[data-eliminated="true"] {
-  border-color: rgba(225, 37, 27, 0.34);
-  background: linear-gradient(90deg, rgba(225, 37, 27, 0.1), #fff 34%);
+  border-color: rgba(225, 37, 27, 0.68);
+  background:
+    linear-gradient(90deg, rgba(225, 37, 27, 0.2), rgba(255, 255, 255, 0.98) 42%),
+    #fff;
+  box-shadow: 0 10px 24px rgba(225, 37, 27, 0.16);
 }
 
 .team-card[data-eliminated="true"]::before {
   background: var(--red);
+  width: 8px;
 }
 
 .team-title {
@@ -694,10 +698,11 @@ dialog::backdrop {
 }
 
 .journey-card[data-eliminated="true"] {
-  border-color: rgba(225, 37, 27, 0.32);
+  border-color: rgba(225, 37, 27, 0.68);
   background:
-    linear-gradient(180deg, rgba(225, 37, 27, 0.08), rgba(255, 255, 255, 0.94) 120px),
+    linear-gradient(180deg, rgba(225, 37, 27, 0.16), rgba(255, 255, 255, 0.96) 140px),
     #fff;
+  box-shadow: 0 10px 26px rgba(225, 37, 27, 0.14);
 }
 
 .journey-top {

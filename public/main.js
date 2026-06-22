@@ -472,7 +472,7 @@ function renderTeamCard(team, options = {}) {
           <span class="badge">x${formatNumber(team.multiplier)}</span>
           <span class="picked-badge">${formatNumber(team.pickedBy?.length || 0)} 👥</span>
         </div>
-        <div class="team-meta">${formatNumber(base)} punti base - ${visibleEvents.length} ${eventLabel}${team.eliminationPhase ? ` - Fase Eliminazione: ${escapeHtml(team.eliminationPhase)}` : ""}</div>
+        <div class="team-meta">${team.eliminationPhase ? '<span class="eliminated-badge">Eliminata</span> ' : ""}${formatNumber(base)} punti base - ${visibleEvents.length} ${eventLabel}${team.eliminationPhase ? ` - Fase Eliminazione: ${escapeHtml(team.eliminationPhase)}` : ""}</div>
       </div>
       <div class="team-points">
         <strong>${formatNumber(total)}</strong>
@@ -575,14 +575,7 @@ function openParticipant(participant) {
   els.dialogName.textContent = participant.name;
   els.dialogSummary.textContent = `${formatNumber(participant.total)} punti totali - premio provvisorio ${formatEuro(participant.prize)}`;
   els.dialogTeams.innerHTML = participant.picks
-    .map((pick) => renderTeamDetail({
-      team: pick.name,
-      group: pick.group,
-      multiplier: pick.multiplier,
-      base: pick.base,
-      total: pick.total,
-      events: pick.events,
-    }))
+    .map((pick) => renderTeamDetail(getTeamByName(pick.name) || pick))
     .join("");
   els.dialog.showModal();
 }
