@@ -11,7 +11,6 @@ L'app e' statica: Vercel pubblica direttamente la cartella `public/`. Non serve 
    - `public/styles.css`
    - `public/main.js`
    - `public/tecnocasa-logo.png`
-   - `public/resources/teams.csv`
    - `public/resources/punteggi.csv`
    - `public/resources/partecipanti.csv`
    - `public/resources/risultati.csv`

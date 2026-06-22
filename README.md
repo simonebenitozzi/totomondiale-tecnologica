@@ -37,10 +37,9 @@ Su alcuni PC Windows `npm run dev` puo' essere bloccato dalla policy di PowerShe
 
 I dati modificabili sono in `public/resources/`:
 
-- `teams.csv`: squadre, girone e coefficiente;
 - `punteggi.csv`: punteggi associati agli eventi;
 - `partecipanti.csv`: partecipanti e 3 squadre scelte;
-- `risultati.csv`: risultati inseriti per ogni squadra;
+- `risultati.csv`: nazionali, girone, coefficiente, risultati ed eventuale fase eliminazione;
 - `regolamento.txt`: testo del regolamento mostrato nell'app.
 
 Quando cambi un CSV o il regolamento, ricarica la pagina per vedere i dati aggiornati.
@@ -95,6 +94,5 @@ Nota per Vercel: `vercel.json` forza il deploy statico con `@vercel/static`, cos
         ├── partecipanti.csv
         ├── punteggi.csv
         ├── regolamento.txt
-        ├── risultati.csv
-        └── teams.csv
+        └── risultati.csv
 ```

@@ -52,7 +52,6 @@ const FLAGS = {
 };
 
 const paths = {
-  teams: "resources/teams.csv",
   points: "resources/punteggi.csv",
   participants: "resources/partecipanti.csv",
   results: "resources/risultati.csv",
@@ -95,20 +94,17 @@ let showPickedOnly = false;
 init().catch(showError);
 
 async function init() {
-  const [teamsText, pointsText, participantsText, resultsText, rulesText] = await Promise.all([
-    fetchText(paths.teams),
+  const [pointsText, participantsText, resultsText, rulesText] = await Promise.all([
     fetchText(paths.points),
     fetchText(paths.participants),
     fetchText(paths.results),
     fetchText(paths.rules),
   ]);
 
-  const teams = parseCsv(teamsText);
   const points = parseCsv(pointsText);
   const participants = parseCsv(participantsText);
   const results = parseCsv(resultsText);
   const pointsByEvent = new Map(points.map((row) => [normalize(row.Event), toNumber(row.Points)]));
-  const teamsByName = new Map(teams.map((team) => [normalize(team.Team), team]));
   const pickedByTeam = buildPickedByTeam(participants);
   const teamScores = results
     .map((row) => ({
@@ -119,13 +115,13 @@ async function init() {
 
   const teamScoresByName = new Map(teamScores.map((team) => [normalize(team.team), team]));
   const ranking = participants
-    .map((participant) => buildParticipantScore(participant, teamsByName, teamScoresByName))
+    .map((participant) => buildParticipantScore(participant, teamScoresByName))
     .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, "it"));
 
   applyRanks(ranking);
   applyPrizes(ranking);
 
-  appData = { teams, points, ranking, teamScores, rulesText };
+  appData = { points, ranking, teamScores, rulesText };
   renderAll();
   bindEvents();
 }
@@ -256,17 +252,17 @@ function phaseCategory(column) {
   return "knockout";
 }
 
-function buildParticipantScore(participant, teamsByName, teamScoresByName) {
+function buildParticipantScore(participant, teamScoresByName) {
   const picks = [participant.Squadra1, participant.Squadra2, participant.Squadra3].map((teamName) => {
-    const team = teamsByName.get(normalize(teamName));
     const score = teamScoresByName.get(normalize(teamName));
     return {
       name: teamName,
-      group: team?.Group || score?.group || "-",
-      multiplier: toNumber(team?.Multiplier || score?.multiplier),
+      group: score?.group || "-",
+      multiplier: toNumber(score?.multiplier),
       base: score?.base || 0,
       total: score?.total || 0,
       events: score?.events || [],
+      eliminationPhase: score?.eliminationPhase || "",
     };
   });
 
