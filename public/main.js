@@ -69,6 +69,7 @@ const els = {
   teamsCount: document.querySelector("#teamsCount"),
   teamsList: document.querySelector("#teamsList"),
   teamSearch: document.querySelector("#teamSearch"),
+  scoreViewSelects: document.querySelectorAll("[data-score-view]"),
   teamSortButtons: document.querySelectorAll("[data-team-sort]"),
   teamDirectionButtons: document.querySelectorAll("[data-team-direction]"),
   pickedFilter: document.querySelector("#pickedFilter"),
@@ -84,6 +85,7 @@ const els = {
 };
 
 let appData = null;
+let scoreView = "total";
 let teamSort = {
   field: "points",
   direction: "desc",
@@ -212,7 +214,7 @@ function countDelimiter(line, delimiter) {
 function buildTeamScore(row, pointsByEvent) {
   const multiplier = toNumber(row.Multiplier);
   const scoringColumns = Object.keys(row).filter(
-    (key) => !["Team", "Group", "Multiplier"].includes(key),
+    (key) => !["Team", "Group", "Multiplier", "Fase Eliminazione"].includes(key),
   );
   const events = scoringColumns
     .map((column) => scoreCell(column, row[column], pointsByEvent))
@@ -226,6 +228,7 @@ function buildTeamScore(row, pointsByEvent) {
     base,
     total: base * multiplier,
     events,
+    eliminationPhase: row["Fase Eliminazione"] || "",
   };
 }
 
@@ -235,7 +238,7 @@ function scoreCell(column, value, pointsByEvent) {
 
   const numeric = parseNumber(clean);
   if (numeric !== null) {
-    return { label: column, value: clean, points: numeric };
+    return { label: column, value: clean, points: numeric, category: phaseCategory(column) };
   }
 
   const lookup = pointsByEvent.get(normalize(clean));
@@ -243,7 +246,14 @@ function scoreCell(column, value, pointsByEvent) {
     label: column,
     value: clean,
     points: Number.isFinite(lookup) ? lookup : 0,
+    category: phaseCategory(column),
   };
+}
+
+function phaseCategory(column) {
+  if (column === "Punti Girone") return "group";
+  if (column === "Qualificazione Girone") return "groupQualification";
+  return "knockout";
 }
 
 function buildParticipantScore(participant, teamsByName, teamScoresByName) {
@@ -317,6 +327,64 @@ function applyPrizes(ranking) {
   });
 }
 
+function getScoredEvents(team) {
+  if (scoreView === "group") {
+    return team.events.filter((event) => event.category === "group");
+  }
+  if (scoreView === "groupQualification") {
+    return team.events.filter((event) => ["group", "groupQualification"].includes(event.category));
+  }
+  if (scoreView === "knockout") {
+    return team.events.filter((event) => event.category === "knockout");
+  }
+  return team.events;
+}
+
+function getTeamBase(team) {
+  return getScoredEvents(team).reduce((sum, event) => sum + event.points, 0);
+}
+
+function getTeamTotal(team) {
+  return getTeamBase(team) * team.multiplier;
+}
+
+function getTeamByName(teamName) {
+  return appData?.teamScores.find((team) => normalize(team.team) === normalize(teamName));
+}
+
+function getParticipantRanking() {
+  const ranking = appData.ranking
+    .map((participant) => {
+      const picks = participant.picks.map((pick) => {
+        const team = getTeamByName(pick.name);
+        return {
+          ...pick,
+          base: team ? getTeamBase(team) : 0,
+          total: team ? getTeamTotal(team) : 0,
+          events: team ? getScoredEvents(team) : [],
+          eliminationPhase: team?.eliminationPhase || "",
+        };
+      });
+      return {
+        ...participant,
+        picks,
+        total: picks.reduce((sum, pick) => sum + pick.total, 0),
+      };
+    })
+    .sort((a, b) => b.total - a.total || a.name.localeCompare(b.name, "it"));
+
+  applyRanks(ranking);
+  applyPrizes(ranking);
+  return ranking;
+}
+
+function scoreViewLabel() {
+  if (scoreView === "group") return "Punti Girone";
+  if (scoreView === "groupQualification") return "Girone + Qualificazione";
+  if (scoreView === "knockout") return "Eliminazione diretta";
+  return "Punteggi Totali";
+}
+
 function renderAll() {
   els.totalPrize.textContent = formatEuro(appData.ranking.length * ENTRY_FEE);
   renderHero();
@@ -326,7 +394,8 @@ function renderAll() {
 }
 
 function renderHero() {
-  const leaders = appData.ranking.filter((participant) => participant.rank === 1);
+  const ranking = getParticipantRanking();
+  const leaders = ranking.filter((participant) => participant.rank === 1);
   const label = leaders.length === 1 ? leaders[0].name : `${leaders.length} in testa`;
   els.leaderName.textContent = label;
   els.leaderPoints.textContent = formatNumber(leaders[0]?.total || 0);
@@ -334,11 +403,11 @@ function renderHero() {
     leaders.length === 1
       ? `Premio provvisorio ${formatEuro(leaders[0].prize)}`
       : `Premio diviso: ${formatEuro(leaders[0]?.prize || 0)} a testa`;
-  els.updatedAt.textContent = "Punteggi Totali";
+  els.updatedAt.textContent = scoreViewLabel();
 }
 
 function renderRanking() {
-  els.rankingList.innerHTML = appData.ranking
+  els.rankingList.innerHTML = getParticipantRanking()
     .map((participant) => {
       const rankClass = participant.rank === 1 ? "gold" : participant.rank === 2 ? "green" : participant.rank === 3 ? "blue" : "";
       const prize = participant.prize > 0 ? `<span>${formatEuro(participant.prize)}</span>` : "";
@@ -384,7 +453,7 @@ function compareTeamValue(a, b, field) {
   if (field === "name") return a.team.localeCompare(b.team, "it");
   if (field === "group") return a.group.localeCompare(b.group, "it");
   if (field === "multiplier") return a.multiplier - b.multiplier;
-  return a.total - b.total;
+  return getTeamTotal(a) - getTeamTotal(b);
 }
 
 function renderTeamCard(team, options = {}) {
@@ -392,10 +461,13 @@ function renderTeamCard(team, options = {}) {
   const attrs = options.clickable
     ? `type="button" class="team-card team-button" data-team="${escapeHtml(team.team)}"`
     : 'class="team-card"';
-  const eventLabel = team.events.length === 1 ? "fase con punti" : "fasi con punti";
+  const base = getTeamBase(team);
+  const total = getTeamTotal(team);
+  const visibleEvents = getScoredEvents(team);
+  const eventLabel = visibleEvents.length === 1 ? "fase con punti" : "fasi con punti";
 
   return `
-    <${tag} ${attrs}>
+    <${tag} ${attrs} data-eliminated="${team.eliminationPhase ? "true" : "false"}">
       <div>
         <div class="team-title">
           <span class="flag" aria-hidden="true">${teamFlag(team.team)}</span>
@@ -404,10 +476,10 @@ function renderTeamCard(team, options = {}) {
           <span class="badge">x${formatNumber(team.multiplier)}</span>
           <span class="picked-badge">${formatNumber(team.pickedBy?.length || 0)} 👥</span>
         </div>
-        <div class="team-meta">${formatNumber(team.base)} punti base - ${team.events.length} ${eventLabel}</div>
+        <div class="team-meta">${formatNumber(base)} punti base - ${visibleEvents.length} ${eventLabel}${team.eliminationPhase ? ` - Fase Eliminazione: ${escapeHtml(team.eliminationPhase)}` : ""}</div>
       </div>
       <div class="team-points">
-        <strong>${formatNumber(team.total)}</strong>
+        <strong>${formatNumber(total)}</strong>
         <span>punti</span>
       </div>
     </${tag}>
@@ -442,7 +514,7 @@ function bindEvents() {
   els.rankingList.addEventListener("click", (event) => {
     const button = event.target.closest("button[data-participant]");
     if (!button) return;
-    const participant = appData.ranking.find((item) => item.name === button.dataset.participant);
+    const participant = getParticipantRanking().find((item) => item.name === button.dataset.participant);
     if (participant) openParticipant(participant);
   });
 
@@ -454,6 +526,15 @@ function bindEvents() {
   });
 
   els.teamSearch.addEventListener("input", renderTeams);
+  els.scoreViewSelects.forEach((select) => {
+    select.addEventListener("change", () => {
+      scoreView = select.value;
+      updateScoreViewControls();
+      renderHero();
+      renderRanking();
+      renderTeams();
+    });
+  });
   els.teamSortButtons.forEach((button) => {
     button.addEventListener("click", () => {
       teamSort.field = button.dataset.teamSort;
@@ -487,6 +568,12 @@ function updateSortControls() {
   els.pickedFilter.setAttribute("aria-pressed", String(showPickedOnly));
 }
 
+function updateScoreViewControls() {
+  els.scoreViewSelects.forEach((select) => {
+    select.value = scoreView;
+  });
+}
+
 function openParticipant(participant) {
   els.dialogType.textContent = "Partecipante";
   els.dialogName.textContent = participant.name;
@@ -507,29 +594,32 @@ function openParticipant(participant) {
 function openTeam(team) {
   els.dialogType.textContent = "Squadra";
   els.dialogName.textContent = `${teamFlag(team.team)} ${team.team}`;
-  els.dialogSummary.textContent = `Girone ${team.group} - coefficiente x${formatNumber(team.multiplier)} - scelta da ${formatNumber(team.pickedBy.length)} partecipanti`;
+  els.dialogSummary.textContent = `Girone ${team.group} - coefficiente x${formatNumber(team.multiplier)} - scelta da ${formatNumber(team.pickedBy.length)} partecipanti${team.eliminationPhase ? ` - Fase Eliminazione: ${team.eliminationPhase}` : ""}`;
   els.dialogTeams.innerHTML = renderTeamDetail(team);
   els.dialog.showModal();
 }
 
 function renderTeamDetail(team) {
+  const base = getTeamBase(team);
+  const total = getTeamTotal(team);
   return `
-    <section class="journey-card">
+    <section class="journey-card" data-eliminated="${team.eliminationPhase ? "true" : "false"}">
       <div class="journey-top">
         <div>
           <h3><span class="flag large" aria-hidden="true">${teamFlag(team.team)}</span>${escapeHtml(team.team)}</h3>
           <p>Girone ${escapeHtml(team.group)} - coefficiente x${formatNumber(team.multiplier)}</p>
         </div>
         <div class="journey-score">
-          <strong>${formatNumber(team.total)}</strong>
+          <strong>${formatNumber(total)}</strong>
           <span>punti</span>
         </div>
       </div>
       <div class="journey-formula">
-        ${formatNumber(team.base)} punti base x ${formatNumber(team.multiplier)} = ${formatNumber(team.total)}
+        ${formatNumber(base)} punti base x ${formatNumber(team.multiplier)} = ${formatNumber(total)}
       </div>
       ${renderPickedBy(team)}
       ${renderJourney(team)}
+      ${renderElimination(team)}
     </section>
   `;
 }
@@ -556,7 +646,8 @@ function renderPickedBy(team) {
 }
 
 function renderJourney(team) {
-  if (!team.events.length) {
+  const events = getScoredEvents(team);
+  if (!events.length) {
     return `
       <div class="empty-journey">
         Nessun risultato inserito per ora.
@@ -566,7 +657,7 @@ function renderJourney(team) {
 
   return `
     <div class="journey-list">
-      ${team.events
+      ${events
         .map((event) => {
           const multiplied = event.points * team.multiplier;
           return `
@@ -584,6 +675,18 @@ function renderJourney(team) {
           `;
         })
         .join("")}
+    </div>
+  `;
+}
+
+function renderElimination(team) {
+  if (!team.eliminationPhase) return "";
+
+  return `
+    <div class="elimination-step">
+      <span class="elimination-x">X</span>
+      <strong>Fase Eliminazione</strong>
+      <span>${escapeHtml(team.eliminationPhase)}</span>
     </div>
   `;
 }

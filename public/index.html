@@ -48,6 +48,15 @@
             <h2 id="rankingTitle">Partecipanti</h2>
             <span id="updatedAt"></span>
           </div>
+          <div class="score-filter">
+            <label for="rankingScoreView">Punti</label>
+            <select id="rankingScoreView" data-score-view>
+              <option value="total">Totale</option>
+              <option value="group">Punti Girone</option>
+              <option value="groupQualification">Girone + Qualificazione</option>
+              <option value="knockout">Eliminazione diretta</option>
+            </select>
+          </div>
           <div id="rankingList" class="ranking-list"></div>
         </section>
 
@@ -58,6 +67,15 @@
           </div>
           <div class="search-wrap">
             <input id="teamSearch" type="search" placeholder="Cerca nazionale" autocomplete="off" />
+          </div>
+          <div class="score-filter">
+            <label for="teamsScoreView">Punti</label>
+            <select id="teamsScoreView" data-score-view>
+              <option value="total">Totale</option>
+              <option value="group">Punti Girone</option>
+              <option value="groupQualification">Girone + Qualificazione</option>
+              <option value="knockout">Eliminazione diretta</option>
+            </select>
           </div>
           <div class="team-sortbar" aria-label="Ordina nazionali">
             <div class="sort-fields">

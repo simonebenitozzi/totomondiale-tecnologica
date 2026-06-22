@@ -361,6 +361,35 @@ h2 {
   background: #fff;
 }
 
+.score-filter {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 10px;
+  align-items: center;
+  margin-bottom: 10px;
+  padding: 8px 10px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.9);
+  box-shadow: 0 8px 20px rgba(17, 19, 25, 0.04);
+}
+
+.score-filter label {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.score-filter select {
+  width: 100%;
+  min-height: 38px;
+  border: 1px solid rgba(0, 87, 184, 0.18);
+  border-radius: 7px;
+  color: var(--ink);
+  background: #fff;
+  font-weight: 850;
+}
+
 .team-sortbar {
   display: grid;
   gap: 8px;
@@ -462,6 +491,15 @@ h2 {
 .rank-card:has(button:hover) {
   border-color: rgba(0, 87, 184, 0.35);
   box-shadow: 0 12px 26px rgba(0, 87, 184, 0.12);
+}
+
+.team-card[data-eliminated="true"] {
+  border-color: rgba(225, 37, 27, 0.34);
+  background: linear-gradient(90deg, rgba(225, 37, 27, 0.1), #fff 34%);
+}
+
+.team-card[data-eliminated="true"]::before {
+  background: var(--red);
 }
 
 .team-title {
@@ -655,6 +693,13 @@ dialog::backdrop {
   box-shadow: 0 8px 22px rgba(17, 19, 25, 0.06);
 }
 
+.journey-card[data-eliminated="true"] {
+  border-color: rgba(225, 37, 27, 0.32);
+  background:
+    linear-gradient(180deg, rgba(225, 37, 27, 0.08), rgba(255, 255, 255, 0.94) 120px),
+    #fff;
+}
+
 .journey-top {
   display: grid;
   grid-template-columns: 1fr auto;
@@ -779,6 +824,37 @@ dialog::backdrop {
   color: var(--muted);
   background: rgba(56, 176, 0, 0.06);
   font-weight: 800;
+}
+
+.elimination-step {
+  display: grid;
+  grid-template-columns: 28px 1fr auto;
+  gap: 10px;
+  align-items: center;
+  margin-top: 12px;
+  padding: 10px;
+  border: 1px solid rgba(225, 37, 27, 0.35);
+  border-radius: 8px;
+  color: #991b1b;
+  background: rgba(225, 37, 27, 0.08);
+}
+
+.elimination-x {
+  display: grid;
+  place-items: center;
+  width: 24px;
+  height: 24px;
+  border-radius: 50%;
+  color: #fff;
+  background: var(--red);
+  font-size: 0.82rem;
+  font-weight: 950;
+}
+
+.elimination-step strong,
+.elimination-step span:last-child {
+  font-size: 0.82rem;
+  font-weight: 900;
 }
 
 .picked-panel {
