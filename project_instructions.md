@@ -1,10 +1,7 @@
-qualche accorgimento:
+Ho intenzione di fare un refactoring completo del backend di questa app
+Prima di tutto ora si basa tutto su csv, io voglio che invece tutti i dati nei csv siano riportati in database 
+Farò setup di u n DB Supabase, dammi tutte le istruzioni da seguire in un file md (ho già account li) e un file di migrazione dei cscv con tutte le insert all'interno per allineare agli attuali csv
+Ovviamente nel codice tutti i rifereimenti a css vanno cambiati con API verso supabase
 
-sul secondo tab di visualizzazione Nazionali
-
-- anziche "Girone X" visualizza solo "X", amagri in un riquadro quadrato per differenziarlo dal coefficiente x2
-- aggungi per ciascuna nazionale anche un numero e unicona tipo profile che mostri ogni nazionale da quanti partecipanti è stata scelta, es. Messico "2👥"
-- e poi aprendo la scheda della anzionale si vede nel dettaglio i nomi dei aprtecipanti che ce l'hanno
-- Intoltre per le nazionali permetti di ordinare
-    - il default va bene com'0è, per punti guadagnati, ma metti anche la possibilità di ordinare per A-Z, GIrone, COefficiente (possibilmente in utiti i casi ASC DESC)
-    - fai inmodo che questo sia molto UI sopratutto il toggle asc desc
+inoltre voglio essere in grado di cambiare i risultati delle squadre direttamente da app, facendo un login come admin
+Per ora non implementare ancora questa cosa, facciamo una cosa per volta, ma tienila a mente per le implementazioni correnti, cosi da tenerci pronti a questo upgrade

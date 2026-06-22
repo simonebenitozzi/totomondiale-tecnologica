@@ -288,6 +288,15 @@ h2 {
   border-left-color: var(--gold);
 }
 
+.rank-card[data-eliminated="true"] {
+  border-color: rgba(225, 37, 27, 0.68);
+  border-left: 8px solid var(--red);
+  background:
+    linear-gradient(90deg, rgba(225, 37, 27, 0.2), rgba(255, 255, 255, 0.98) 42%),
+    #fff;
+  box-shadow: 0 10px 24px rgba(225, 37, 27, 0.16);
+}
+
 .rank-card button {
   border: 0;
   background: transparent;
@@ -362,6 +371,7 @@ h2 {
 }
 
 .score-filter {
+  position: relative;
   display: grid;
   grid-template-columns: auto 1fr;
   gap: 10px;
@@ -381,13 +391,49 @@ h2 {
 }
 
 .score-filter select {
+  appearance: none;
   width: 100%;
-  min-height: 38px;
-  border: 1px solid rgba(0, 87, 184, 0.18);
+  min-height: 42px;
+  padding: 0 42px 0 13px;
+  border: 1px solid rgba(0, 87, 184, 0.28);
   border-radius: 7px;
   color: var(--ink);
   background: #fff;
-  font-weight: 850;
+  font: inherit;
+  font-size: 0.86rem;
+  font-weight: 900;
+  cursor: pointer;
+  outline: none;
+}
+
+.score-filter select:focus-visible {
+  border-color: var(--blue);
+  box-shadow: 0 0 0 3px rgba(0, 87, 184, 0.12);
+}
+
+.select-chevron {
+  position: absolute;
+  right: 22px;
+  top: 50%;
+  color: var(--blue);
+  font-size: 1.25rem;
+  font-weight: 900;
+  line-height: 1;
+  pointer-events: none;
+  transform: translateY(-58%);
+}
+
+.eliminated-badge {
+  display: inline-flex;
+  align-items: center;
+  min-height: 20px;
+  padding: 2px 7px;
+  border-radius: 5px;
+  color: #fff;
+  background: var(--red);
+  font-size: 0.68rem;
+  font-weight: 900;
+  text-transform: uppercase;
 }
 
 .team-sortbar {

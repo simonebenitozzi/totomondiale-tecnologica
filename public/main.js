@@ -374,6 +374,10 @@ function getParticipantRanking() {
   return ranking;
 }
 
+function isParticipantEliminated(participant) {
+  return participant.picks.length === 3 && participant.picks.every((pick) => pick.eliminationPhase);
+}
+
 function scoreViewLabel() {
   if (scoreView === "group") return "Punti Girone";
   if (scoreView === "groupQualification") return "Girone + Qualificazione";
@@ -395,10 +399,11 @@ function renderHero() {
   const label = leaders.length === 1 ? leaders[0].name : `${leaders.length} in testa`;
   els.leaderName.textContent = label;
   els.leaderPoints.textContent = formatNumber(leaders[0]?.total || 0);
-  els.leaderMeta.textContent =
-    leaders.length === 1
+  els.leaderMeta.textContent = scoreView === "total"
+    ? leaders.length === 1
       ? `Premio provvisorio ${formatEuro(leaders[0].prize)}`
-      : `Premio diviso: ${formatEuro(leaders[0]?.prize || 0)} a testa`;
+      : `Premio diviso: ${formatEuro(leaders[0]?.prize || 0)} a testa`
+    : scoreViewLabel();
   els.updatedAt.textContent = scoreViewLabel();
 }
 
@@ -406,9 +411,11 @@ function renderRanking() {
   els.rankingList.innerHTML = getParticipantRanking()
     .map((participant) => {
       const rankClass = participant.rank === 1 ? "gold" : participant.rank === 2 ? "green" : participant.rank === 3 ? "blue" : "";
-      const prize = participant.prize > 0 ? `<span>${formatEuro(participant.prize)}</span>` : "";
+      const showsPrize = scoreView === "total" && participant.prize > 0;
+      const prize = showsPrize ? `<span>${formatEuro(participant.prize)}</span>` : "";
+      const eliminated = isParticipantEliminated(participant);
       return `
-        <article class="rank-card ${participant.prize > 0 ? "prize" : ""}">
+        <article class="rank-card ${showsPrize ? "prize" : ""}" data-eliminated="${eliminated}">
           <div class="position ${rankClass}">${participant.rank}</div>
           <button type="button" data-participant="${escapeHtml(participant.name)}">
             <div class="person-name">${escapeHtml(participant.name)}</div>
@@ -573,7 +580,9 @@ function updateScoreViewControls() {
 function openParticipant(participant) {
   els.dialogType.textContent = "Partecipante";
   els.dialogName.textContent = participant.name;
-  els.dialogSummary.textContent = `${formatNumber(participant.total)} punti totali - premio provvisorio ${formatEuro(participant.prize)}`;
+  els.dialogSummary.textContent = scoreView === "total"
+    ? `${formatNumber(participant.total)} punti totali - premio provvisorio ${formatEuro(participant.prize)}`
+    : `${formatNumber(participant.total)} punti - ${scoreViewLabel()}`;
   els.dialogTeams.innerHTML = participant.picks
     .map((pick) => renderTeamDetail(getTeamByName(pick.name) || pick))
     .join("");
@@ -596,7 +605,7 @@ function renderTeamDetail(team) {
       <div class="journey-top">
         <div>
           <h3><span class="flag large" aria-hidden="true">${teamFlag(team.team)}</span>${escapeHtml(team.team)}</h3>
-          <p>Girone ${escapeHtml(team.group)} - coefficiente x${formatNumber(team.multiplier)}</p>
+          <p>Girone ${escapeHtml(team.group)} - coefficiente x${formatNumber(team.multiplier)}${team.eliminationPhase ? ` - Fase Eliminazione: ${escapeHtml(team.eliminationPhase)}` : ""}</p>
         </div>
         <div class="journey-score">
           <strong>${formatNumber(total)}</strong>
