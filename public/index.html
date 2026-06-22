@@ -127,7 +127,12 @@
           <h2 id="dialogName"></h2>
           <p id="dialogSummary" class="dialog-summary"></p>
         </div>
-        <button class="icon-button" type="button" id="closeDialog" aria-label="Chiudi">x</button>
+        <div class="dialog-actions">
+          <button class="icon-button edit-dialog-button" type="button" id="editDialogTeam" aria-label="Modifica risultati" title="Modifica risultati" hidden>
+            <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 16.5V20h3.5L18.8 8.7l-3.5-3.5L4 16.5Zm17.7-10.6a1 1 0 0 0 0-1.4l-2.2-2.2a1 1 0 0 0-1.4 0l-1.7 1.7 3.5 3.5 1.8-1.6Z"/></svg>
+          </button>
+          <button class="icon-button" type="button" id="closeDialog" aria-label="Chiudi">x</button>
+        </div>
       </div>
       <div id="dialogTeams" class="dialog-teams"></div>
     </dialog>

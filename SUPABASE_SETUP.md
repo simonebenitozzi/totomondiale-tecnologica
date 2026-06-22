@@ -136,3 +136,13 @@ Gli utenti autenticati ma assenti da `admin_users` non possono modificare il dat
 4. Modifica i punti e la fase di eliminazione, quindi salva.
 
 Il salvataggio aggiorna `teams.elimination_phase` e sostituisce i risultati della squadra in `team_results` dentro una singola transazione PostgreSQL. Lasciare un risultato vuoto lo elimina; inserire `0` salva esplicitamente zero punti.
+
+### 5. Rendere i risultati interi
+
+Esegui una volta nel `SQL Editor` anche:
+
+```text
+supabase/migrations/202606220003_integer_team_results.sql
+```
+
+La migrazione converte i valori come `3.00` in `3` e impedisce nuovi risultati decimali.

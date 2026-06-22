@@ -87,6 +87,7 @@ const els = {
   dialogSummary: document.querySelector("#dialogSummary"),
   dialogTeams: document.querySelector("#dialogTeams"),
   closeDialog: document.querySelector("#closeDialog"),
+  editDialogTeam: document.querySelector("#editDialogTeam"),
   loginButton: document.querySelector("#loginButton"),
   logoutButton: document.querySelector("#logoutButton"),
   loginDialog: document.querySelector("#loginDialog"),
@@ -288,7 +289,7 @@ function buildTeamScore({ team, events: resultRows }) {
   const multiplier = toNumber(team.multiplier);
   const events = resultRows.map((result) => ({
     label: result.label,
-    value: result.display_value,
+    value: formatNumber(result.points),
     points: toNumber(result.points),
     category: result.category,
   }));
@@ -474,6 +475,7 @@ function renderRanking() {
           <button type="button" data-participant="${escapeHtml(participant.name)}">
             <div class="person-name">${escapeHtml(participant.name)}</div>
             <div class="person-teams">${participant.picks.map((pick) => `${teamFlag(pick.name)} ${escapeHtml(pick.name)}`).join(" / ")}</div>
+            <span class="detail-link">Dettagli <span aria-hidden="true">›</span></span>
           </button>
           <div class="score-cell">
             <strong>${formatNumber(participant.total)}</strong>
@@ -534,12 +536,12 @@ function renderTeamCard(team, options = {}) {
           <span class="picked-badge">${formatNumber(team.pickedBy?.length || 0)} 👥</span>
         </div>
         <div class="team-meta">${team.eliminationPhase ? '<span class="eliminated-badge">Eliminata</span> ' : ""}${formatNumber(base)} punti base - ${visibleEvents.length} ${eventLabel}${team.eliminationPhase ? ` - Fase Eliminazione: ${escapeHtml(team.eliminationPhase)}` : ""}</div>
+        ${options.clickable ? '<span class="detail-link">Dettagli <span aria-hidden="true">›</span></span>' : ""}
       </div>
       <div class="team-points">
         <strong>${formatNumber(total)}</strong>
         <span>punti</span>
       </div>
-      ${options.clickable && isAdmin ? `<span class="edit-team-button" role="button" data-edit-team="${team.id}">Modifica risultati</span>` : ""}
     </${tag}>
   `;
 }
@@ -577,12 +579,6 @@ function bindEvents() {
   });
 
   els.teamsList.addEventListener("click", (event) => {
-    const editControl = event.target.closest("[data-edit-team]");
-    if (editControl) {
-      const team = appData.teamScores.find((item) => item.id === Number(editControl.dataset.editTeam));
-      if (team && isAdmin) openEditTeam(team);
-      return;
-    }
     const button = event.target.closest("button[data-team]");
     if (!button) return;
     const team = appData.teamScores.find((item) => item.team === button.dataset.team);
@@ -619,6 +615,12 @@ function bindEvents() {
     renderTeams();
   });
   els.closeDialog.addEventListener("click", () => els.dialog.close());
+  els.editDialogTeam.addEventListener("click", () => {
+    const team = appData.teamScores.find((item) => item.id === Number(els.editDialogTeam.dataset.teamId));
+    if (!team || !isAdmin) return;
+    els.dialog.close();
+    openEditTeam(team);
+  });
   els.loginButton.addEventListener("click", () => {
     els.loginError.hidden = true;
     els.loginForm.reset();
@@ -663,7 +665,7 @@ function openEditTeam(team) {
     return `
       <label class="result-field">
         <span>${escapeHtml(label)}</span>
-        <input type="number" min="0" step="0.01" inputmode="decimal" data-result-label="${escapeHtml(label)}" value="${value}">
+        <input type="number" min="0" step="1" inputmode="numeric" data-result-label="${escapeHtml(label)}" value="${value}">
       </label>
     `;
   }).join("");
@@ -720,6 +722,8 @@ function updateScoreViewControls() {
 }
 
 function openParticipant(participant) {
+  els.editDialogTeam.hidden = true;
+  delete els.editDialogTeam.dataset.teamId;
   els.dialogType.textContent = "Partecipante";
   els.dialogName.textContent = participant.name;
   els.dialogSummary.textContent = scoreView === "total"
@@ -732,6 +736,8 @@ function openParticipant(participant) {
 }
 
 function openTeam(team) {
+  els.editDialogTeam.hidden = !isAdmin;
+  els.editDialogTeam.dataset.teamId = team.id;
   els.dialogType.textContent = "Squadra";
   els.dialogName.textContent = `${teamFlag(team.team)} ${team.team}`;
   els.dialogSummary.textContent = `Girone ${team.group} - coefficiente x${formatNumber(team.multiplier)} - scelta da ${formatNumber(team.pickedBy.length)} partecipanti${team.eliminationPhase ? ` - Fase Eliminazione: ${team.eliminationPhase}` : ""}`;
@@ -858,7 +864,7 @@ function parseNumber(value) {
 }
 
 function formatNumber(value) {
-  return new Intl.NumberFormat("it-IT", { maximumFractionDigits: 2 }).format(value);
+  return new Intl.NumberFormat("it-IT", { maximumFractionDigits: 0 }).format(value);
 }
 
 function formatEuro(value) {
