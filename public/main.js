@@ -51,12 +51,8 @@ const FLAGS = {
   "PANAMA": "🇵🇦",
 };
 
-const paths = {
-  points: "resources/punteggi.csv",
-  participants: "resources/partecipanti.csv",
-  results: "resources/risultati.csv",
-  rules: "resources/regolamento.txt",
-};
+const SUPABASE_URL = window.APP_CONFIG?.SUPABASE_URL?.replace(/\/$/, "");
+const SUPABASE_KEY = window.APP_CONFIG?.SUPABASE_PUBLISHABLE_KEY;
 
 const els = {
   totalPrize: document.querySelector("#totalPrize"),
@@ -94,22 +90,36 @@ let showPickedOnly = false;
 init().catch(showError);
 
 async function init() {
-  const [pointsText, participantsText, resultsText, rulesText] = await Promise.all([
-    fetchText(paths.points),
-    fetchText(paths.participants),
-    fetchText(paths.results),
-    fetchText(paths.rules),
+  validateConfig();
+  const [points, participantsData, teams, teamResults, settings] = await Promise.all([
+    fetchSupabase("scoring_events?select=phase,event,points&order=sort_order"),
+    fetchSupabase("participants?select=id,name,participant_picks(pick_order,teams(name))&order=name"),
+    fetchSupabase("teams?select=id,name,group_name,multiplier,elimination_phase&order=name"),
+    fetchSupabase("team_results?select=team_id,label,points,display_value,category,sort_order&order=sort_order"),
+    fetchSupabase("app_settings?select=key,value"),
   ]);
 
-  const points = parseCsv(pointsText);
-  const participants = parseCsv(participantsText);
-  const results = parseCsv(resultsText);
-  const pointsByEvent = new Map(points.map((row) => [normalize(row.Event), toNumber(row.Points)]));
+  const participants = participantsData.map((participant) => ({
+    Partecipante: participant.name,
+    ...Object.fromEntries(
+      participant.participant_picks
+        .sort((a, b) => a.pick_order - b.pick_order)
+        .map((pick, index) => [`Squadra${index + 1}`, pick.teams.name]),
+    ),
+  }));
+  const resultsByTeam = teamResults.reduce((groups, result) => {
+    if (!groups.has(result.team_id)) groups.set(result.team_id, []);
+    groups.get(result.team_id).push(result);
+    return groups;
+  }, new Map());
+  const results = teams.map((team) => ({ team, events: resultsByTeam.get(team.id) || [] }));
+  const rulesText = settings.find((setting) => setting.key === "rules")?.value || "";
+  const pointsForView = points.map((row) => ({ Phase: row.phase, Event: row.event, Points: row.points }));
   const pickedByTeam = buildPickedByTeam(participants);
   const teamScores = results
     .map((row) => ({
-      ...buildTeamScore(row, pointsByEvent),
-      pickedBy: pickedByTeam.get(normalize(row.Team)) || [],
+      ...buildTeamScore(row),
+      pickedBy: pickedByTeam.get(normalize(row.team.name)) || [],
     }))
     .sort((a, b) => b.total - a.total || a.team.localeCompare(b.team, "it"));
 
@@ -121,135 +131,51 @@ async function init() {
   applyRanks(ranking);
   applyPrizes(ranking);
 
-  appData = { points, ranking, teamScores, rulesText };
+  appData = { points: pointsForView, ranking, teamScores, rulesText };
   renderAll();
   bindEvents();
 }
 
-async function fetchText(path) {
-  const response = await fetch(path, { cache: "no-store" });
+function validateConfig() {
+  if (!SUPABASE_URL || !SUPABASE_KEY || SUPABASE_URL.includes("YOUR_PROJECT_REF") || SUPABASE_KEY.includes("YOUR_SUPABASE")) {
+    throw new Error("Configura SUPABASE_URL e SUPABASE_PUBLISHABLE_KEY in config.js");
+  }
+}
+
+async function fetchSupabase(resource) {
+  const response = await fetch(`${SUPABASE_URL}/rest/v1/${resource}`, {
+    cache: "no-store",
+    headers: {
+      apikey: SUPABASE_KEY,
+      Authorization: `Bearer ${SUPABASE_KEY}`,
+    },
+  });
   if (!response.ok) {
-    throw new Error(`Impossibile leggere ${path}`);
+    const details = await response.text();
+    throw new Error(`Errore Supabase (${response.status}): ${details}`);
   }
-  return response.text();
+  return response.json();
 }
 
-function parseCsv(text) {
-  const delimiter = detectDelimiter(text);
-  const rows = [];
-  let row = [];
-  let cell = "";
-  let insideQuotes = false;
-
-  for (let i = 0; i < text.length; i += 1) {
-    const char = text[i];
-    const next = text[i + 1];
-
-    if (char === '"' && insideQuotes && next === '"') {
-      cell += '"';
-      i += 1;
-    } else if (char === '"') {
-      insideQuotes = !insideQuotes;
-    } else if (char === delimiter && !insideQuotes) {
-      row.push(cell);
-      cell = "";
-    } else if ((char === "\n" || char === "\r") && !insideQuotes) {
-      if (char === "\r" && next === "\n") i += 1;
-      row.push(cell);
-      if (row.some((value) => value.trim() !== "")) rows.push(row);
-      row = [];
-      cell = "";
-    } else {
-      cell += char;
-    }
-  }
-
-  row.push(cell);
-  if (row.some((value) => value.trim() !== "")) rows.push(row);
-
-  const [headers, ...records] = rows;
-  return records.map((record) =>
-    headers.reduce((item, header, index) => {
-      item[header.trim()] = (record[index] || "").trim();
-      return item;
-    }, {}),
-  );
-}
-
-function detectDelimiter(text) {
-  const firstDataLine = text
-    .split(/\r?\n/)
-    .find((line) => line.trim() !== "");
-  if (!firstDataLine) return ";";
-
-  const semicolons = countDelimiter(firstDataLine, ";");
-  const commas = countDelimiter(firstDataLine, ",");
-  return commas > semicolons ? "," : ";";
-}
-
-function countDelimiter(line, delimiter) {
-  let count = 0;
-  let insideQuotes = false;
-
-  for (let i = 0; i < line.length; i += 1) {
-    const char = line[i];
-    const next = line[i + 1];
-
-    if (char === '"' && insideQuotes && next === '"') {
-      i += 1;
-    } else if (char === '"') {
-      insideQuotes = !insideQuotes;
-    } else if (char === delimiter && !insideQuotes) {
-      count += 1;
-    }
-  }
-
-  return count;
-}
-
-function buildTeamScore(row, pointsByEvent) {
-  const multiplier = toNumber(row.Multiplier);
-  const scoringColumns = Object.keys(row).filter(
-    (key) => !["Team", "Group", "Multiplier", "Fase Eliminazione"].includes(key),
-  );
-  const events = scoringColumns
-    .map((column) => scoreCell(column, row[column], pointsByEvent))
-    .filter(Boolean);
+function buildTeamScore({ team, events: resultRows }) {
+  const multiplier = toNumber(team.multiplier);
+  const events = resultRows.map((result) => ({
+    label: result.label,
+    value: result.display_value,
+    points: toNumber(result.points),
+    category: result.category,
+  }));
   const base = events.reduce((sum, event) => sum + event.points, 0);
 
   return {
-    team: row.Team,
-    group: row.Group,
+    team: team.name,
+    group: team.group_name,
     multiplier,
     base,
     total: base * multiplier,
     events,
-    eliminationPhase: row["Fase Eliminazione"] || "",
+    eliminationPhase: team.elimination_phase || "",
   };
-}
-
-function scoreCell(column, value, pointsByEvent) {
-  const clean = String(value || "").trim();
-  if (!clean) return null;
-
-  const numeric = parseNumber(clean);
-  if (numeric !== null) {
-    return { label: column, value: clean, points: numeric, category: phaseCategory(column) };
-  }
-
-  const lookup = pointsByEvent.get(normalize(clean));
-  return {
-    label: column,
-    value: clean,
-    points: Number.isFinite(lookup) ? lookup : 0,
-    category: phaseCategory(column),
-  };
-}
-
-function phaseCategory(column) {
-  if (column === "Punti Girone") return "group";
-  if (column === "Qualificazione Girone") return "groupQualification";
-  return "knockout";
 }
 
 function buildParticipantScore(participant, teamScoresByName) {

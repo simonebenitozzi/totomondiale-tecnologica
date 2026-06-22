@@ -1,98 +1,49 @@
 # Totomondiale Tecnologica
 
-Web app semplice per gestire il Totomondiale dell'ufficio Tecnocasa.
+Web app mobile per il Totomondiale dell'ufficio Tecnocasa. Il frontend statico interroga le API REST di Supabase e calcola classifica, premi provvisori, punteggi e percorso delle nazionali.
 
-L'app e' pensata per mobile, legge direttamente i file dentro `public/resources/` e calcola:
+## Configurazione
 
-- classifica dei partecipanti;
-- premi provvisori, inclusi i pari merito;
-- punteggio calcolato di ogni squadra;
-- dettaglio del percorso di ogni squadra nelle varie fasi del Mondiale;
-- dettaglio delle 3 squadre scelte da ogni partecipante;
-- regolamento e tabella punteggi.
+Serve Node.js. Prima del primo avvio:
 
-## Avvio locale
-
-Serve Node.js.
-
-```powershell
-node scripts/local-server.cjs
-```
-
-Poi apri:
-
-```text
-http://127.0.0.1:4173
-```
-
-In alternativa:
+1. crea e popola Supabase seguendo [SUPABASE_SETUP.md](SUPABASE_SETUP.md);
+2. imposta URL e chiave pubblicabile in `public/config.js`;
+3. avvia il server locale.
 
 ```powershell
 npm.cmd run dev
 ```
 
-Su alcuni PC Windows `npm run dev` puo' essere bloccato dalla policy di PowerShell; `npm.cmd run dev` evita il problema.
+Apri `http://127.0.0.1:4173`.
 
-## File dati
-
-I dati modificabili sono in `public/resources/`:
-
-- `punteggi.csv`: punteggi associati agli eventi;
-- `partecipanti.csv`: partecipanti e 3 squadre scelte;
-- `risultati.csv`: nazionali, girone, coefficiente, risultati ed eventuale fase eliminazione;
-- `regolamento.txt`: testo del regolamento mostrato nell'app.
-
-Quando cambi un CSV o il regolamento, ricarica la pagina per vedere i dati aggiornati.
-
-## Come vengono calcolati i punti
-
-Per ogni squadra:
+## Calcolo punti
 
 ```text
 punti squadra = punti base ottenuti nel torneo x coefficiente
-```
-
-Per ogni partecipante:
-
-```text
 punti partecipante = somma dei punti delle sue 3 squadre
 ```
 
-I premi sono:
+I premi sono 70, 40 e 20 euro. In caso di pari merito, i premi delle posizioni coinvolte vengono sommati e divisi in parti uguali.
 
-- primo posto: 70 euro;
-- secondo posto: 40 euro;
-- terzo posto: 20 euro.
+## Dati
 
-In caso di pari merito, i premi delle posizioni coinvolte vengono sommati e divisi in parti uguali.
-
-## Deploy
-
-Vercel va bene per questo progetto perché l'app e' statica e pubblica direttamente `public/`.
-
-Le istruzioni complete sono in [DEPLOY.md](DEPLOY.md).
-
-Nota per Vercel: `vercel.json` forza il deploy statico con `@vercel/static`, cosi Vercel non cerca un entrypoint Node e non crea Serverless Function.
+Schema, dati iniziali e policy RLS sono in `supabase/migrations/202606220001_initial_data.sql`. Il browser puo' soltanto leggere i dati. Lo schema normalizzato e' pronto per una futura area admin basata su Supabase Auth.
 
 ## Struttura
 
 ```text
 .
-├── package.json
-├── DEPLOY.md
-├── README.md
-├── vercel.json
-├── scripts/
-│   └── local-server.cjs
-└── public/
-    ├── index.html
-    ├── main.js
-    ├── styles.css
-    ├── tecnocasa-logo.png
-    ├── favicon.ico
-    └── resources/
-        ├── partecipanti.csv
-        ├── punteggi.csv
-        ├── regolamento.txt
-        └── risultati.csv
+|-- public/
+|   |-- config.js
+|   |-- index.html
+|   |-- main.js
+|   `-- styles.css
+|-- scripts/local-server.cjs
+|-- supabase/migrations/
+|   `-- 202606220001_initial_data.sql
+|-- SUPABASE_SETUP.md
+|-- DEPLOY.md
+`-- vercel.json
 ```
+
+Le istruzioni di pubblicazione sono in [DEPLOY.md](DEPLOY.md).

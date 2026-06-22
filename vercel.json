@@ -12,11 +12,7 @@
       "dest": "public/favicon.ico"
     },
     {
-      "src": "/resources/(.*)",
-      "dest": "public/resources/$1"
-    },
-    {
-      "src": "/(.*\\.(?:html|css|js|png|ico|csv|txt))",
+      "src": "/(.*\\.(?:html|css|js|png|ico))",
       "dest": "public/$1"
     },
     {
