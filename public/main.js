@@ -53,6 +53,17 @@ const FLAGS = {
 
 const SUPABASE_URL = window.APP_CONFIG?.SUPABASE_URL?.replace(/\/$/, "");
 const SUPABASE_KEY = window.APP_CONFIG?.SUPABASE_PUBLISHABLE_KEY;
+const AUTH_USERNAME_DOMAIN = "fantamondiale.local";
+const AUTH_STORAGE_KEY = "fantamondiale.admin.session";
+const RESULT_FIELDS = [
+  ["Punti Girone", "group", 1],
+  ["Qualificazione Girone", "groupQualification", 2],
+  ["Sedicesimi", "knockout", 3],
+  ["Ottavi", "knockout", 4],
+  ["Quarti", "knockout", 5],
+  ["Semifinale", "knockout", 6],
+  ["Finale", "knockout", 7],
+];
 
 const els = {
   totalPrize: document.querySelector("#totalPrize"),
@@ -76,6 +87,24 @@ const els = {
   dialogSummary: document.querySelector("#dialogSummary"),
   dialogTeams: document.querySelector("#dialogTeams"),
   closeDialog: document.querySelector("#closeDialog"),
+  loginButton: document.querySelector("#loginButton"),
+  logoutButton: document.querySelector("#logoutButton"),
+  loginDialog: document.querySelector("#loginDialog"),
+  loginForm: document.querySelector("#loginForm"),
+  loginUsername: document.querySelector("#loginUsername"),
+  loginPassword: document.querySelector("#loginPassword"),
+  loginSubmit: document.querySelector("#loginSubmit"),
+  loginError: document.querySelector("#loginError"),
+  closeLogin: document.querySelector("#closeLogin"),
+  editTeamDialog: document.querySelector("#editTeamDialog"),
+  editTeamForm: document.querySelector("#editTeamForm"),
+  editTeamName: document.querySelector("#editTeamName"),
+  editTeamId: document.querySelector("#editTeamId"),
+  editEliminationPhase: document.querySelector("#editEliminationPhase"),
+  editResults: document.querySelector("#editResults"),
+  editTeamError: document.querySelector("#editTeamError"),
+  saveTeamButton: document.querySelector("#saveTeamButton"),
+  closeEditTeam: document.querySelector("#closeEditTeam"),
   errorBox: document.querySelector("#errorBox"),
 };
 
@@ -86,16 +115,25 @@ let teamSort = {
   direction: "desc",
 };
 let showPickedOnly = false;
+let authSession = readStoredSession();
+let isAdmin = false;
 
 init().catch(showError);
 
 async function init() {
   validateConfig();
+  await restoreAdminSession();
+  await loadData();
+  bindEvents();
+  renderAuth();
+}
+
+async function loadData() {
   const [points, participantsData, teams, teamResults, settings] = await Promise.all([
     fetchSupabase("scoring_events?select=phase,event,points&order=sort_order"),
     fetchSupabase("participants?select=id,name,participant_picks(pick_order,teams(name))&order=name"),
     fetchSupabase("teams?select=id,name,group_name,multiplier,elimination_phase&order=name"),
-    fetchSupabase("team_results?select=team_id,label,points,display_value,category,sort_order&order=sort_order"),
+    fetchSupabase("team_results?select=id,team_id,label,points,display_value,category,sort_order&order=sort_order"),
     fetchSupabase("app_settings?select=key,value"),
   ]);
 
@@ -133,7 +171,6 @@ async function init() {
 
   appData = { points: pointsForView, ranking, teamScores, rulesText };
   renderAll();
-  bindEvents();
 }
 
 function validateConfig() {
@@ -142,19 +179,109 @@ function validateConfig() {
   }
 }
 
-async function fetchSupabase(resource) {
+async function fetchSupabase(resource, options = {}) {
+  if (options.authenticated) await ensureFreshSession();
+  const token = options.authenticated ? authSession?.access_token : SUPABASE_KEY;
   const response = await fetch(`${SUPABASE_URL}/rest/v1/${resource}`, {
     cache: "no-store",
+    method: options.method || "GET",
     headers: {
       apikey: SUPABASE_KEY,
-      Authorization: `Bearer ${SUPABASE_KEY}`,
+      Authorization: `Bearer ${token}`,
+      ...(options.body ? { "Content-Type": "application/json" } : {}),
     },
+    body: options.body ? JSON.stringify(options.body) : undefined,
   });
   if (!response.ok) {
     const details = await response.text();
     throw new Error(`Errore Supabase (${response.status}): ${details}`);
   }
+  if (response.status === 204 || response.headers.get("content-length") === "0") return null;
   return response.json();
+}
+
+function readStoredSession() {
+  try {
+    return JSON.parse(localStorage.getItem(AUTH_STORAGE_KEY)) || null;
+  } catch {
+    localStorage.removeItem(AUTH_STORAGE_KEY);
+    return null;
+  }
+}
+
+function storeSession(session) {
+  authSession = session;
+  if (session) localStorage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
+  else localStorage.removeItem(AUTH_STORAGE_KEY);
+}
+
+async function authRequest(path, body, accessToken) {
+  const response = await fetch(`${SUPABASE_URL}/auth/v1/${path}`, {
+    method: "POST",
+    headers: {
+      apikey: SUPABASE_KEY,
+      "Content-Type": "application/json",
+      ...(accessToken ? { Authorization: `Bearer ${accessToken}` } : {}),
+    },
+    body: JSON.stringify(body || {}),
+  });
+  const data = await response.json().catch(() => ({}));
+  if (!response.ok) throw new Error(data.msg || data.message || data.error_description || "Autenticazione non riuscita");
+  return data;
+}
+
+function normalizeSession(session) {
+  return {
+    ...session,
+    expires_at: session.expires_at || Math.floor(Date.now() / 1000) + session.expires_in,
+  };
+}
+
+async function ensureFreshSession() {
+  if (!authSession) throw new Error("Sessione amministratore non disponibile");
+  if (authSession.expires_at > Math.floor(Date.now() / 1000) + 60) return;
+  const refreshed = await authRequest("token?grant_type=refresh_token", { refresh_token: authSession.refresh_token });
+  storeSession(normalizeSession(refreshed));
+}
+
+async function restoreAdminSession() {
+  if (!authSession) return;
+  try {
+    await ensureFreshSession();
+    isAdmin = Boolean(await fetchSupabase("rpc/is_admin", { method: "POST", body: {}, authenticated: true }));
+    if (!isAdmin) storeSession(null);
+  } catch {
+    storeSession(null);
+    isAdmin = false;
+  }
+}
+
+async function login(username, password) {
+  const cleanUsername = username.trim().toLocaleLowerCase("it-IT");
+  const email = cleanUsername.includes("@") ? cleanUsername : `${cleanUsername}@${AUTH_USERNAME_DOMAIN}`;
+  const session = normalizeSession(await authRequest("token?grant_type=password", { email, password }));
+  storeSession(session);
+  try {
+    isAdmin = Boolean(await fetchSupabase("rpc/is_admin", { method: "POST", body: {}, authenticated: true }));
+    if (!isAdmin) throw new Error("Questo account non e' autorizzato come amministratore");
+  } catch (error) {
+    await logout();
+    throw error;
+  }
+}
+
+async function logout() {
+  const token = authSession?.access_token;
+  storeSession(null);
+  isAdmin = false;
+  if (token) await authRequest("logout", {}, token).catch(() => {});
+  renderAuth();
+  if (appData) renderTeams();
+}
+
+function renderAuth() {
+  els.loginButton.hidden = isAdmin;
+  els.logoutButton.hidden = !isAdmin;
 }
 
 function buildTeamScore({ team, events: resultRows }) {
@@ -168,6 +295,7 @@ function buildTeamScore({ team, events: resultRows }) {
   const base = events.reduce((sum, event) => sum + event.points, 0);
 
   return {
+    id: team.id,
     team: team.name,
     group: team.group_name,
     multiplier,
@@ -336,7 +464,7 @@ function renderHero() {
 function renderRanking() {
   els.rankingList.innerHTML = getParticipantRanking()
     .map((participant) => {
-      const rankClass = participant.rank === 1 ? "gold" : participant.rank === 2 ? "green" : participant.rank === 3 ? "blue" : "";
+      const rankClass = participant.rank === 1 ? "gold" : participant.rank === 2 ? "silver" : participant.rank === 3 ? "bronze" : "";
       const showsPrize = scoreView === "total" && participant.prize > 0;
       const prize = showsPrize ? `<span>${formatEuro(participant.prize)}</span>` : "";
       const eliminated = isParticipantEliminated(participant);
@@ -411,6 +539,7 @@ function renderTeamCard(team, options = {}) {
         <strong>${formatNumber(total)}</strong>
         <span>punti</span>
       </div>
+      ${options.clickable && isAdmin ? `<span class="edit-team-button" role="button" data-edit-team="${team.id}">Modifica risultati</span>` : ""}
     </${tag}>
   `;
 }
@@ -448,6 +577,12 @@ function bindEvents() {
   });
 
   els.teamsList.addEventListener("click", (event) => {
+    const editControl = event.target.closest("[data-edit-team]");
+    if (editControl) {
+      const team = appData.teamScores.find((item) => item.id === Number(editControl.dataset.editTeam));
+      if (team && isAdmin) openEditTeam(team);
+      return;
+    }
     const button = event.target.closest("button[data-team]");
     if (!button) return;
     const team = appData.teamScores.find((item) => item.team === button.dataset.team);
@@ -484,6 +619,87 @@ function bindEvents() {
     renderTeams();
   });
   els.closeDialog.addEventListener("click", () => els.dialog.close());
+  els.loginButton.addEventListener("click", () => {
+    els.loginError.hidden = true;
+    els.loginForm.reset();
+    els.loginDialog.showModal();
+    els.loginUsername.focus();
+  });
+  els.closeLogin.addEventListener("click", () => els.loginDialog.close());
+  els.loginForm.addEventListener("submit", handleLoginSubmit);
+  els.logoutButton.addEventListener("click", logout);
+  els.closeEditTeam.addEventListener("click", () => els.editTeamDialog.close());
+  els.editTeamForm.addEventListener("submit", handleTeamSave);
+}
+
+async function handleLoginSubmit(event) {
+  event.preventDefault();
+  els.loginError.hidden = true;
+  els.loginSubmit.disabled = true;
+  els.loginSubmit.textContent = "Accesso...";
+  try {
+    await login(els.loginUsername.value, els.loginPassword.value);
+    els.loginForm.reset();
+    els.loginDialog.close();
+    renderAuth();
+    renderTeams();
+  } catch (error) {
+    els.loginError.textContent = error.message;
+    els.loginError.hidden = false;
+  } finally {
+    els.loginSubmit.disabled = false;
+    els.loginSubmit.textContent = "Accedi";
+  }
+}
+
+function openEditTeam(team) {
+  els.editTeamError.hidden = true;
+  els.editTeamId.value = team.id;
+  els.editTeamName.textContent = `${teamFlag(team.team)} ${team.team}`;
+  els.editEliminationPhase.value = team.eliminationPhase || "";
+  const eventsByLabel = new Map(team.events.map((item) => [item.label, item]));
+  els.editResults.innerHTML = RESULT_FIELDS.map(([label]) => {
+    const value = eventsByLabel.has(label) ? eventsByLabel.get(label).points : "";
+    return `
+      <label class="result-field">
+        <span>${escapeHtml(label)}</span>
+        <input type="number" min="0" step="0.01" inputmode="decimal" data-result-label="${escapeHtml(label)}" value="${value}">
+      </label>
+    `;
+  }).join("");
+  els.editTeamDialog.showModal();
+}
+
+async function handleTeamSave(event) {
+  event.preventDefault();
+  if (!isAdmin) return;
+  els.editTeamError.hidden = true;
+  els.saveTeamButton.disabled = true;
+  els.saveTeamButton.textContent = "Salvataggio...";
+
+  const results = [...els.editResults.querySelectorAll("[data-result-label]")]
+    .filter((input) => input.value.trim() !== "")
+    .map((input) => ({ label: input.dataset.resultLabel, points: Number(input.value) }));
+
+  try {
+    await fetchSupabase("rpc/save_team_results", {
+      method: "POST",
+      authenticated: true,
+      body: {
+        p_team_id: Number(els.editTeamId.value),
+        p_elimination_phase: els.editEliminationPhase.value || null,
+        p_results: results,
+      },
+    });
+    els.editTeamDialog.close();
+    await loadData();
+  } catch (error) {
+    els.editTeamError.textContent = error.message;
+    els.editTeamError.hidden = false;
+  } finally {
+    els.saveTeamButton.disabled = false;
+    els.saveTeamButton.textContent = "Salva risultati";
+  }
 }
 
 function updateSortControls() {

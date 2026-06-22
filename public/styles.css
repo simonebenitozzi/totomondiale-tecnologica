@@ -42,8 +42,31 @@ body::before {
 }
 
 button,
-input {
+input,
+select {
   font: inherit;
+}
+
+.topbar-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auth-button {
+  min-height: 38px;
+  padding: 0 12px;
+  border: 1px solid rgba(0, 87, 184, 0.22);
+  border-radius: 8px;
+  color: var(--blue);
+  background: rgba(255, 255, 255, 0.9);
+  font-weight: 900;
+}
+
+.auth-button.logged-in {
+  color: #fff;
+  border-color: var(--green);
+  background: var(--green);
 }
 
 .app-shell {
@@ -275,6 +298,31 @@ h2 {
   box-shadow: 0 5px 18px rgba(17, 19, 25, 0.05);
 }
 
+.team-card-main {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  color: inherit;
+  background: transparent;
+  text-align: left;
+}
+
+.edit-team-button {
+  display: grid;
+  place-items: center;
+  grid-column: 1 / -1;
+  min-height: 38px;
+  border: 0;
+  border-radius: 7px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--blue), var(--green));
+  font-size: 0.82rem;
+  font-weight: 900;
+}
+
 .rank-card {
   position: relative;
   grid-template-columns: 40px 1fr auto;
@@ -319,12 +367,13 @@ h2 {
   background: var(--gold);
 }
 
-.position.green {
-  background: var(--green);
+.position.silver {
+  color: var(--ink);
+  background: #c7ccd1;
 }
 
-.position.blue {
-  background: var(--blue);
+.position.bronze {
+  background: #a85f2f;
 }
 
 .person-name {
@@ -703,6 +752,77 @@ dialog::backdrop {
   background: rgba(17, 19, 25, 0.54);
 }
 
+.auth-dialog,
+.edit-dialog {
+  width: min(calc(100% - 24px), 480px);
+}
+
+.form-field {
+  display: grid;
+  gap: 6px;
+  margin-bottom: 12px;
+}
+
+.form-field span,
+.result-field span {
+  color: var(--muted);
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.form-field input,
+.form-field select,
+.result-field input {
+  width: 100%;
+  min-height: 44px;
+  padding: 0 12px;
+  border: 1px solid var(--line);
+  border-radius: 7px;
+  color: var(--ink);
+  background: #fff;
+}
+
+.result-fields {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 10px;
+  margin: 14px 0 10px;
+}
+
+.result-field {
+  display: grid;
+  gap: 5px;
+}
+
+.primary-button {
+  width: 100%;
+  min-height: 46px;
+  border: 0;
+  border-radius: 8px;
+  color: #fff;
+  background: linear-gradient(135deg, var(--blue), var(--green));
+  font-weight: 900;
+}
+
+.primary-button:disabled {
+  opacity: 0.6;
+}
+
+.form-error {
+  padding: 9px 10px;
+  border-radius: 7px;
+  color: #991b1b;
+  background: rgba(225, 37, 27, 0.1);
+  font-size: 0.82rem;
+  font-weight: 800;
+}
+
+.form-hint {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
 .dialog-head {
   display: flex;
   align-items: flex-start;
@@ -988,6 +1108,19 @@ dialog::backdrop {
   .pot {
     min-width: 78px;
     padding: 8px;
+  }
+
+  .topbar-actions {
+    flex-wrap: wrap;
+    justify-content: flex-end;
+  }
+
+  .auth-button {
+    order: 2;
+  }
+
+  .result-fields {
+    grid-template-columns: 1fr;
   }
 
   .score-hero {

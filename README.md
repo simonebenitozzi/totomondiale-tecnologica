@@ -27,7 +27,7 @@ I premi sono 70, 40 e 20 euro. In caso di pari merito, i premi delle posizioni c
 
 ## Dati
 
-Schema, dati iniziali e policy RLS sono in `supabase/migrations/202606220001_initial_data.sql`. Il browser puo' soltanto leggere i dati. Lo schema normalizzato e' pronto per una futura area admin basata su Supabase Auth.
+Schema e dati iniziali sono in `supabase/migrations/202606220001_initial_data.sql`. Login, policy admin e salvataggio risultati sono in `supabase/migrations/202606220002_admin_results.sql`. Le credenziali sono gestite da Supabase Auth e non risiedono nel repository.
 
 ## Struttura
 

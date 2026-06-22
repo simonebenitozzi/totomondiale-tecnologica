@@ -81,13 +81,58 @@ Errori comuni:
 
 Fai commit anche del `public/config.js` configurato e pubblica normalmente. URL e chiave pubblicabile non sono segreti; la sicurezza dipende dalle policy RLS. Dopo il deploy verifica nuovamente le richieste REST.
 
-## Preparazione al futuro admin
+## Area admin e modifica risultati
 
-Ogni risultato e' una riga di `team_results`, quindi il futuro pannello potra' inserirla o aggiornarla senza cambiare schema. Il prossimo incremento dovra':
+La password non va salvata in Git, in `config.js` o nelle ENV Vercel. Questo frontend e' statico: qualsiasi variabile usata dal browser diventa ispezionabile. La password viene invece gestita da Supabase Auth e salvata nel database soltanto come hash.
 
-1. attivare Supabase Auth;
-2. definire una tabella o claim affidabile per identificare gli admin;
-3. aggiungere policy RLS `insert`, `update` e `delete` limitate agli admin;
-4. usare la sessione autenticata nel client e creare l'interfaccia di gestione.
+### 1. Applicare la migrazione admin
 
-Non abilitare genericamente la scrittura al ruolo `authenticated`: ogni utente registrato potrebbe modificare i risultati.
+Esegui nel `SQL Editor` tutto il file:
+
+```text
+supabase/migrations/202606220002_admin_results.sql
+```
+
+La migrazione crea la lista privata `admin_users`, le policy RLS e la funzione transazionale `save_team_results`.
+
+### 2. Creare l'utente Auth
+
+1. Nel dashboard apri `Authentication` e quindi `Users`.
+2. Crea manualmente un utente con email `s.benitozzi@fantamondiale.local`.
+3. Imposta una password robusta e marca l'utente come confermato, se richiesto.
+4. Non usare la password del database Supabase e non inserirla in alcun file.
+
+La schermata accetta lo username `s.benitozzi` e aggiunge internamente il dominio tecnico. E' possibile anche inserire l'email completa.
+
+La password condivisa in chat non e' stata scritta nel progetto. Se era una credenziale reale gia' in uso, e' prudente sostituirla con una nuova prima della pubblicazione.
+
+### 3. Autorizzare l'utente come admin
+
+Dopo aver creato l'utente, esegui una sola volta:
+
+```sql
+insert into public.admin_users (user_id)
+select id
+from auth.users
+where email = 's.benitozzi@fantamondiale.local'
+on conflict (user_id) do nothing;
+```
+
+Verifica che sia stata inserita una riga:
+
+```sql
+select au.email, a.created_at
+from public.admin_users a
+join auth.users au on au.id = a.user_id;
+```
+
+Gli utenti autenticati ma assenti da `admin_users` non possono modificare il database. L'UUID Auth, non lo username mostrato nel browser, determina l'autorizzazione.
+
+### 4. Usare la schermata
+
+1. Apri l'app e premi `Admin`.
+2. Accedi con username e password.
+3. Nel tab `Nazionali` premi `Modifica risultati`.
+4. Modifica i punti e la fase di eliminazione, quindi salva.
+
+Il salvataggio aggiorna `teams.elimination_phase` e sostituisce i risultati della squadra in `team_results` dentro una singola transazione PostgreSQL. Lasciare un risultato vuoto lo elimina; inserire `0` salva esplicitamente zero punti.

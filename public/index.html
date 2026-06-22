@@ -18,9 +18,13 @@
             <h1>Totomondiale Tecnologica</h1>
           </div>
         </div>
-        <div class="pot">
-          <span>Montepremi</span>
-          <strong id="totalPrize">-</strong>
+        <div class="topbar-actions">
+          <button class="auth-button" id="loginButton" type="button">Admin</button>
+          <button class="auth-button logged-in" id="logoutButton" type="button" hidden>Esci</button>
+          <div class="pot">
+            <span>Montepremi</span>
+            <strong id="totalPrize">-</strong>
+          </div>
         </div>
       </header>
 
@@ -126,6 +130,42 @@
         <button class="icon-button" type="button" id="closeDialog" aria-label="Chiudi">x</button>
       </div>
       <div id="dialogTeams" class="dialog-teams"></div>
+    </dialog>
+
+    <dialog id="loginDialog" class="auth-dialog">
+      <form id="loginForm">
+        <div class="dialog-head">
+          <div><p class="eyebrow">Area riservata</p><h2>Login amministratore</h2></div>
+          <button class="icon-button" type="button" id="closeLogin" aria-label="Chiudi">x</button>
+        </div>
+        <label class="form-field"><span>Username</span><input id="loginUsername" autocomplete="username" required /></label>
+        <label class="form-field"><span>Password</span><input id="loginPassword" type="password" autocomplete="current-password" required /></label>
+        <p class="form-error" id="loginError" hidden></p>
+        <button class="primary-button" id="loginSubmit" type="submit">Accedi</button>
+      </form>
+    </dialog>
+
+    <dialog id="editTeamDialog" class="edit-dialog">
+      <form id="editTeamForm">
+        <div class="dialog-head">
+          <div><p class="eyebrow">Modifica risultati</p><h2 id="editTeamName"></h2></div>
+          <button class="icon-button" type="button" id="closeEditTeam" aria-label="Chiudi">x</button>
+        </div>
+        <input id="editTeamId" type="hidden" />
+        <label class="form-field">
+          <span>Fase eliminazione</span>
+          <select id="editEliminationPhase">
+            <option value="">In gara</option><option value="Girone">Girone</option>
+            <option value="Sedicesimi">Sedicesimi</option><option value="Ottavi">Ottavi</option>
+            <option value="Quarti">Quarti</option><option value="Semifinale">Semifinale</option>
+            <option value="Finale">Finale</option>
+          </select>
+        </label>
+        <div id="editResults" class="result-fields"></div>
+        <p class="form-hint">Lascia vuota una fase per rimuoverne il risultato. Il valore 0 viene salvato.</p>
+        <p class="form-error" id="editTeamError" hidden></p>
+        <button class="primary-button" id="saveTeamButton" type="submit">Salva risultati</button>
+      </form>
     </dialog>
 
     <div id="errorBox" class="error-box" hidden></div>
